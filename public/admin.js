@@ -84,15 +84,14 @@
   function renderSignatures(data) {
     const visible = data.named.filter(s => !s.hidden).length;
     const hidden = data.named.length - visible + data.anonymousHidden;
-    sigSummary.textContent = visible + ' named + ' + data.anonymous + ' anonymous visible' + (hidden ? ' · ' + hidden + ' hidden' : '') +
-      '. Hidden signatures disappear from the letter and its count; you can unhide them any time.';
+    sigSummary.textContent = visible + ' named + ' + data.anonymous + ' anonymous visible' + (hidden ? ' · ' + hidden + ' hidden' : '') + '.';
     sigList.replaceChildren();
     if (!data.named.length) { sigList.appendChild(el('li', 'admin-empty', 'No named signatures yet.')); return; }
     for (const s of data.named) {
       const li = el('li', 'admin-item' + (s.hidden ? ' is-hidden' : ''));
       const head = el('div', 'admin-head');
       head.appendChild(el('span', 'admin-badge ' + (s.hidden ? 'badge-hidden' : s.flagged ? 'badge-filtered' : 'badge-visible'),
-        s.hidden ? 'hidden' : s.flagged ? 'visible · looks like: ' + s.flagged : 'visible'));
+        s.hidden ? (s.autoHidden ? 'hidden automatically · ' + s.autoHidden : 'hidden') : s.flagged ? 'visible · looks like: ' + s.flagged : 'visible'));
       head.appendChild(el('span', 'admin-author', s.name));
       if (s.website) head.appendChild(el('span', 'admin-src', s.website.replace(/^https?:\/\//, '').replace(/\/$/, '')));
       head.appendChild(el('time', 'admin-date', new Date(s.at).toLocaleString()));
@@ -108,13 +107,13 @@
 
   async function load() {
     try {
-      renderSignatures(await api('/api/admin/signatures'));
-      const data = await api('/api/admin/stream');
+      if (sigList) renderSignatures(await api('/api/admin/signatures'));
+      const data = list ? await api('/api/admin/stream') : null;
       try { sessionStorage.setItem('olhk-admin-key', key); } catch {}
       keyForm.hidden = true;
       panel.hidden = false;
       if (status.parentNode !== panel) { panel.prepend(status); say(""); }
-      render(data);
+      if (data) render(data);
     } catch (err) {
       panel.hidden = true;
       keyForm.hidden = false;
@@ -131,7 +130,7 @@
 
   keyForm.addEventListener('submit', e => { e.preventDefault(); key = keyInput.value.trim(); load(); });
 
-  xForm.addEventListener('submit', async e => {
+  if (xForm) xForm.addEventListener('submit', async e => {
     e.preventDefault();
     const url = xUrl.value.trim();
     if (!url) return;

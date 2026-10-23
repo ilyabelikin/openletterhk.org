@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Signatures admin — Open Letter HK</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="page admin">
+    <header class="masthead">
+      <p class="kicker">Admin</p>
+      <h1>Signatures</h1>
+      <p class="dateline"><a href="/">← Back to the letter</a></p>
+      <nav class="admin-tabs" aria-label="Admin sections">
+        <a href="/admin">Posts</a>
+        <a href="/admin/signatures" aria-current="page">Signatures</a>
+      </nav>
+    </header>
+
+    <form id="key-form" class="admin-row">
+      <label for="admin-key" class="sr">Admin key</label>
+      <input id="admin-key" type="password" autocomplete="current-password" placeholder="Admin key">
+      <button type="submit">Unlock</button>
+    </form>
+
+    <div id="panel" hidden>
+      <p id="admin-status" class="status" role="status" aria-live="polite"></p>
+      <p class="admin-legend" id="sig-summary"></p>
+      <p class="admin-legend">Hiding a signature also blocks its name and website from being used again: repeats are hidden automatically (shown below with the reason), and you can unhide any of them.</p>
+      <ul id="sig-admin-list" class="admin-list"></ul>
+    </div>
+  </main>
+  <script src="/admin.js" defer></script>
+</body>
+</html>

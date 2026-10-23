@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const dns = require('dns').promises;
 const net = require('net');
 const { createStream } = require('./stream');
-const { notANameReason } = require('./moderation');
+const { notANameReason, blockedReason } = require('./moderation');
 
 const PORT = Number(process.env.PORT) || 3010;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -67,7 +67,7 @@ async function handleAdmin(req, res, pathname) {
   }
   if (pathname === '/api/admin/signatures' && req.method === 'GET') {
     const named = signatures.filter(s => !s.anonymous).slice().reverse()
-      .map(s => ({ id: s.id, name: s.name, website: s.website || '', at: s.at, hidden: !!s.hidden, flagged: notANameReason(s.name) }));
+      .map(s => ({ id: s.id, name: s.name, website: s.website || '', at: s.at, hidden: !!s.hidden, autoHidden: s.autoHidden || null, flagged: notANameReason(s.name) }));
     const anon = signatures.filter(s => s.anonymous);
     return sendJson(res, 200, { named, anonymous: anon.filter(s => !s.hidden).length, anonymousHidden: anon.filter(s => s.hidden).length });
   }
@@ -83,7 +83,7 @@ async function handleAdmin(req, res, pathname) {
       case '/api/admin/sig-unhide': {
         const rec = signatures.find(s => s.id === body.id);
         if (!rec) return sendJson(res, 404, { error: 'Signature not found.' });
-        if (pathname === '/api/admin/sig-hide') rec.hidden = true; else delete rec.hidden;
+        if (pathname === '/api/admin/sig-hide') rec.hidden = true; else { delete rec.hidden; delete rec.autoHidden; }
         await persist();
         return sendJson(res, 200, { ok: true });
       }
@@ -313,6 +313,10 @@ async function handleSign(req, res) {
     }
     record.name = name;
     if (website) record.website = website;
+    // Repeats of a hidden signature are stored hidden, silently: telling a
+    // troll what is blocked only helps them vary it. Moderators see the reason.
+    const blocked = blockedReason(name, website, signatures);
+    if (blocked) { record.hidden = true; record.autoHidden = blocked; }
   }
 
   if (rateLimited(req)) {
@@ -327,7 +331,7 @@ async function handleSign(req, res) {
 // ── Static files ───────────────────────────────────────────────────────────
 
 function serveStatic(req, res, pathname) {
-  const ROUTES = { '/': '/index.html', '/admin': '/admin.html', '/yue': '/yue/index.html', '/yue/': '/yue/index.html' };
+  const ROUTES = { '/': '/index.html', '/admin': '/admin.html', '/admin/signatures': '/admin-signatures.html', '/yue': '/yue/index.html', '/yue/': '/yue/index.html' };
   const rel = ROUTES[pathname] || decodeURIComponent(pathname);
   const file = path.normalize(path.join(PUBLIC_DIR, rel));
   if (!file.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(404, baseHeaders()); return res.end('Not found'); }

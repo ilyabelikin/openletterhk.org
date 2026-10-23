@@ -51,4 +51,36 @@ function notANameReason(name) {
   return null;
 }
 
-module.exports = { notANameReason };
+// Identity keys for "has this person/site been blocked?": case, accents,
+// punctuation, spacing and word order don't matter for names; websites
+// compare by host without "www.".
+function nameKey(name) {
+  return String(name).normalize('NFKD').replace(/\p{M}+/gu, '').toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u).filter(Boolean).sort().join(' ');
+}
+function hostKey(website) {
+  try { return new URL(website).hostname.toLowerCase().replace(/^www\./, ''); } catch { return ''; }
+}
+
+// Blocked from the start. Edit freely.
+const RESERVED_NAMES = ['Ilya Belikin'];               // the letter's author signs it above, not in the list
+const RESERVED_HOSTS = ['anthropic.com', 'claude.ai', 'claude.com'];
+
+// Returns why a new signature should be auto-hidden, or null.
+// A signature hidden by a moderator blocks its name (with any website) and its website (with any name).
+function blockedReason(name, website, signatures) {
+  const nk = nameKey(name), hk = website ? hostKey(website) : '';
+  if (RESERVED_NAMES.some(n => nameKey(n) === nk)) return 'reserved name';
+  if (hk && RESERVED_HOSTS.some(h => hk === h || hk.endsWith('.' + h))) return 'reserved website';
+  for (const s of signatures) {
+    // Only signatures a moderator hid feed the blocklist. Auto-hidden ones must not,
+    // or a troll could block a real name by pairing it with a blocked website.
+    if (!s.hidden || s.autoHidden || s.anonymous) continue;
+    if (s.name && nameKey(s.name) === nk) return 'name matches a hidden signature';
+    const sh = s.website ? hostKey(s.website) : '';
+    if (hk && sh && (hk === sh || hk.endsWith('.' + sh))) return 'website matches a hidden signature'; // incl. subdomains
+  }
+  return null;
+}
+
+module.exports = { notANameReason, blockedReason, nameKey, hostKey };
