@@ -55,7 +55,7 @@
   "share": {
     "heading": "分享這封公開信",
     "lede": "閱讀的人越多，聲音就越響亮。發文時請使用 {{#openletterhk}}。本站不會追蹤你；所有按鈕只會開啟相應的網站。",
-    "share_text": "一封來自香港致 Anthropic 的公開信：讓世界上每一個人都能平等使用 Claude。閱讀並加入聯署。",
+    "share_text": "",
     "email_subject": "一封來自香港致 Anthropic 的公開信",
     "btn_native": "分享……",
     "btn_copy": "複製連結",

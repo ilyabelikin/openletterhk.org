@@ -48,13 +48,14 @@ const TEMPLATES = (() => {
   for (const lang of ['en', 'zh']) {
     try {
       const t = JSON.parse(fs.readFileSync(path.join(__dirname, 'i18n', lang + '.json'), 'utf8')).share.share_text;
-      if (t) out.push(normaliseForTemplate(t));
+      if (t) out.push(normaliseForTemplate(t)); // an empty share text means "no canned caption"
     } catch {}
   }
   return out;
 })();
 function isShareTemplate(text) {
   const n = normaliseForTemplate(text);
+  if (!n) return true; // nothing but our link and hashtag
   return TEMPLATES.some(t => n === t || (n.includes(t) && n.length - t.length <= TEMPLATE_SLACK));
 }
 

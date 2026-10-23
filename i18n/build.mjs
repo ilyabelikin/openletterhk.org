@@ -119,7 +119,9 @@ ${tr.letter.after.map(p).join('\n\n')}
   // ── share
   swap('share heading', `<h2 id="share-heading">${esc(en.share.heading)}</h2>`, `<h2 id="share-heading">${esc(tr.share.heading)}</h2>`);
   swap('share lede', `<p class="lede">${rich(en.share.lede)}</p>`, `<p class="lede">${rich(tr.share.lede)}</p>`);
-  const enText = `${en.share.share_text} ${TAG}`, trText = `${tr.share.share_text} ${TAG}`;
+  // An empty share_text means "no canned caption": pre-fill only the link and hashtag,
+  // so people post in their own voice (a formal caption reads like a bot).
+  const enText = `${en.share.share_text} ${TAG}`, trText = tr.share.share_text ? `${tr.share.share_text} ${TAG}` : TAG;
   const enc = encodeURIComponent;
   swap('data-share-url', `data-share-url="${BASE}"`, `data-share-url="${URL_L}" data-instagram-image="/share-instagram-${loc.code}.png"`);
   swap('data-share-text', `data-share-text="${attr(enText)}"`, `data-share-text="${attr(trText)}"`);
@@ -133,6 +135,8 @@ ${tr.letter.after.map(p).join('\n\n')}
   const n3 = (html.match(urlRe) || []).length;
   if (!n3) throw new Error(`[${loc.code}] share url: no match`);
   html = html.replace(urlRe, enc(URL_L));
+  // with no caption, "text=<caption> #tag" leaves an encoded leading space
+  html = html.split('text=' + enc(' ' + TAG)).join('text=' + enc(TAG));
   swap('mail subject', `subject=${enc(en.share.email_subject)}`, `subject=${enc(tr.share.email_subject)}`);
   swap('btn native', `<span>${esc(en.share.btn_native)}</span>`, `<span>${esc(tr.share.btn_native)}</span>`);
   swap('btn copy', `<span>${esc(en.share.btn_copy)}</span>`, `<span>${esc(tr.share.btn_copy)}</span>`);
