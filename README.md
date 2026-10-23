@@ -49,6 +49,11 @@ Letter text © its author, [CC BY 4.0](https://creativecommons.org/licenses/by/4
 
 The browser only talks to this server; no avatars or third-party requests.
 
+### Anti-spam
+
+- **Proof of work:** every submission carries the answer to a small puzzle (`GET /api/challenge`; SHA-256 with `POW_BITS`, default 18, leading zero bits) that the browser solves invisibly in under a second, starting when someone touches the form. Tokens are HMAC-signed with `POW_SECRET`, expire after 30 minutes and back one stored signature each. No third-party CAPTCHA, nothing to click, works with screen readers.
+- 3 submissions per connection per 24h, a honeypot field, the name filter in `moderation.js`, blocking of moderator-hidden names/sites, and AI moderation of named signatures.
+
 ### Admin
 
 `/admin` lists every post (visible, filtered with the reason, hidden) and lets you hide/unhide, add/remove X posts, and re-check Bluesky. It needs `ADMIN_KEY` in `/var/www/openletterhk.org/.env` on the server (gitignored, loaded by PM2 via `--env-file-if-exists`). Read it with:

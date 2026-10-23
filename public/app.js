@@ -118,6 +118,44 @@
     }
   }
 
+  // ── Proof of work ────────────────────────────────────────────
+  // Solve the server's small puzzle in the background as soon as someone
+  // touches the form, so it is usually ready before they click Sign.
+
+  let powJob = null;
+  const enc = new TextEncoder();
+
+  function zeroBits(bytes) {
+    let bits = 0;
+    for (const b of bytes) { if (b === 0) { bits += 8; continue; } return bits + Math.clz32(b) - 24; }
+    return bits;
+  }
+
+  async function solvePow() {
+    const res = await fetch('/api/challenge', { cache: 'no-store' });
+    if (!res.ok) throw new Error('challenge ' + res.status);
+    const { token, bits, expiresIn } = await res.json();
+    const started = Date.now();
+    const BATCH = 256; // hash in parallel batches; crypto.subtle is async
+    for (let base = 0; ; base += BATCH) {
+      const hashes = await Promise.all(Array.from({ length: BATCH }, (_, i) =>
+        crypto.subtle.digest('SHA-256', enc.encode(token + ':' + (base + i)))));
+      for (let i = 0; i < BATCH; i++) {
+        if (zeroBits(new Uint8Array(hashes[i])) >= bits) {
+          return { token, solution: String(base + i), ms: Date.now() - started, expiresAt: started + expiresIn - 60000 };
+        }
+      }
+    }
+  }
+
+  function getPow() {
+    if (!powJob) powJob = solvePow().catch(err => { powJob = null; throw err; });
+    return powJob;
+  }
+
+  form.addEventListener('focusin', () => { getPow().catch(() => {}); }, { once: true });
+  form.addEventListener('change', () => { getPow().catch(() => {}); }, { once: true });
+
   // ── Submit ───────────────────────────────────────────────────
 
   form.addEventListener('submit', async e => {
@@ -140,12 +178,19 @@
     setStatus(payload.website && payload.website.trim() ? T.checking : T.adding);
 
     try {
-      const res = await fetch('/api/sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
+      const send = async () => {
+        let pow = await getPow();
+        if (Date.now() > pow.expiresAt) { powJob = null; pow = await getPow(); }
+        powJob = null; // one puzzle per submission
+        const res = await fetch('/api/sign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.assign({}, payload, { pow: { token: pow.token, solution: pow.solution } })),
+        });
+        return { res, data: await res.json().catch(() => ({})) };
+      };
+      let { res, data } = await send();
+      if (data.code === 'pow_invalid') ({ res, data } = await send()); // stale puzzle (e.g. server restarted)
 
       if (res.ok) {
         setStatus(T.thanks, 'ok');
@@ -155,7 +200,7 @@
         // Named signatures appear after a short automated check; refresh a few times.
         if (data.pending) [6000, 15000, 30000].forEach(ms => setTimeout(loadSignatures, ms));
       } else {
-        setStatus((data.code && T[data.code]) || data.error || T.error, 'err');
+        setStatus(data.code === 'pow_invalid' ? T.error : (data.code && T[data.code]) || data.error || T.error, 'err');
       }
     } catch {
       setStatus(T.network, 'err');

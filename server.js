@@ -203,6 +203,56 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
+// ── Proof of work ──────────────────────────────────────────────────────────
+// Each submission must carry the answer to a small puzzle the browser solves
+// invisibly (~0.4s on a laptop): find a number so SHA-256("<token>:<number>") starts with
+// POW_BITS zero bits. Tokens are HMAC-signed (stateless), expire after 30 min,
+// and can back only one stored signature. Costs a person nothing; makes bulk
+// scripted spam slow. No third parties involved.
+
+const POW_BITS = Number(process.env.POW_BITS || 18); // ~0.4s desktop Chrome, a little longer on phones
+const POW_TTL_MS = 30 * 60 * 1000;
+const POW_SECRET = process.env.POW_SECRET || crypto.randomBytes(32).toString('hex');
+const usedTokens = new Map(); // token -> expiry
+
+function issueChallenge() {
+  const payload = Date.now().toString(36) + '.' + crypto.randomBytes(12).toString('base64url');
+  const sig = crypto.createHmac('sha256', POW_SECRET).update(payload).digest('base64url').slice(0, 32);
+  return { token: payload + '.' + sig, bits: POW_BITS, expiresIn: POW_TTL_MS };
+}
+
+function leadingZeroBits(buf) {
+  let bits = 0;
+  for (const byte of buf) {
+    if (byte === 0) { bits += 8; continue; }
+    bits += Math.clz32(byte) - 24;
+    break;
+  }
+  return bits;
+}
+
+// Returns null if valid, otherwise a short reason.
+function checkPow(pow) {
+  if (!pow || typeof pow.token !== 'string' || pow.token.length > 120) return 'missing';
+  const parts = pow.token.split('.');
+  if (parts.length !== 3) return 'malformed';
+  const [ts, rand, sig] = parts;
+  const want = crypto.createHmac('sha256', POW_SECRET).update(ts + '.' + rand).digest('base64url').slice(0, 32);
+  if (sig.length !== want.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(want))) return 'bad signature';
+  const issued = parseInt(ts, 36);
+  if (!(Date.now() - issued < POW_TTL_MS) || issued > Date.now() + 60000) return 'expired';
+  if (usedTokens.has(pow.token)) return 'already used';
+  const solution = String(pow.solution ?? '');
+  if (!/^\d{1,12}$/.test(solution)) return 'malformed solution';
+  const hash = crypto.createHash('sha256').update(pow.token + ':' + solution).digest();
+  return leadingZeroBits(hash) >= POW_BITS ? null : 'wrong solution';
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [t, exp] of usedTokens) if (exp < now) usedTokens.delete(t);
+}, 10 * 60 * 1000).unref();
+
 // ── Validation ─────────────────────────────────────────────────────────────
 
 function cleanName(raw) {
@@ -359,6 +409,9 @@ async function handleSign(req, res) {
   // Honeypot: bots fill every field. Pretend it worked, store nothing.
   if (typeof body.fax === 'string' && body.fax.trim()) return sendJson(res, 200, { ok: true });
 
+  const powProblem = checkPow(body.pow);
+  if (powProblem) return sendJson(res, 400, { code: 'pow_invalid', error: 'Please try again.', detail: powProblem });
+
   const anonymous = body.anonymous === true;
   const record = { id: crypto.randomUUID(), at: new Date().toISOString(), anonymous };
 
@@ -395,6 +448,7 @@ async function handleSign(req, res) {
   if (!anonymous && !record.hidden && ai.enabled) record.pending = true;
   signatures.push(record);
   recordSubmission(req);
+  usedTokens.set(body.pow.token, Date.now() + POW_TTL_MS);
   await persist();
   sendJson(res, 201, { ok: true, pending: !!record.pending, count: signatures.filter(s => !s.hidden && !s.pending).length });
   if (record.pending) moderate(record);
@@ -441,6 +495,10 @@ const server = http.createServer((req, res) => {
   // The colloquial Cantonese page was retired; keep old shared links working.
   if (url.pathname === '/yue' || url.pathname === '/yue/') { res.writeHead(301, baseHeaders({ Location: '/zh-hk' })); return res.end(); }
 
+  if (url.pathname === '/api/challenge') {
+    if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
+    return sendJson(res, 200, issueChallenge());
+  }
   if (url.pathname === '/api/signatures') {
     if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
     return sendJson(res, 200, publicSignatures());
