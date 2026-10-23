@@ -39,3 +39,22 @@ Letter text © its author, [CC BY 4.0](https://creativecommons.org/licenses/by/4
 ## Social card
 
 `public/og.png` (2400×1260, link previews) and `public/share-instagram.png` (1080×1350, Instagram feed) are rendered from `og/card.html` and `og/card-portrait.html`. Edit the HTML, then run `./og/render.sh` (needs Google Chrome).
+
+## #openletterhk stream
+
+`stream.js` shows posts tagged **#openletterhk** in a moving strip on the page:
+
+- **Bluesky** is searched every 2 minutes (`api.bsky.app`, no account needed). Posts appear automatically if they pass the filters: account at least 7 days old, at least 3 followers, the post really contains the tag, no Bluesky moderation labels (porn, spam, bot…), authors who opted out of logged-out display are respected, a blocked-words list (`data/blocked-words.txt`, one per line, extends the defaults), and at most 3 posts per author.
+- **X** posts are curated: add them by link on the admin page. Text is fetched from X's public oEmbed endpoint; no X scripts load in the browser.
+
+The browser only talks to this server; no avatars or third-party requests.
+
+### Admin
+
+`/admin` lists every post (visible, filtered with the reason, hidden) and lets you hide/unhide, add/remove X posts, and re-check Bluesky. It needs `ADMIN_KEY` in `/var/www/openletterhk.org/.env` on the server (gitignored, loaded by PM2 via `--env-file-if-exists`). Read it with:
+
+```bash
+ssh root@5.223.89.26 "grep ADMIN_KEY /var/www/openletterhk.org/.env"
+```
+
+Tuning via `.env`: `STREAM_MIN_AGE_DAYS`, `STREAM_MIN_FOLLOWERS`, `STREAM_TAG`.

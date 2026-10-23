@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Stream admin — Open Letter HK</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="page admin">
+    <header class="masthead">
+      <p class="kicker">Admin</p>
+      <h1>#openletterhk stream</h1>
+      <p class="dateline"><a href="/">← Back to the letter</a></p>
+    </header>
+
+    <form id="key-form" class="admin-row">
+      <label for="admin-key" class="sr">Admin key</label>
+      <input id="admin-key" type="password" autocomplete="current-password" placeholder="Admin key">
+      <button type="submit">Unlock</button>
+    </form>
+
+    <div id="panel" hidden>
+      <p id="admin-status" class="status" role="status" aria-live="polite"></p>
+      <p id="feed-status" class="admin-feed"></p>
+
+      <form id="x-form" class="admin-row">
+        <label for="x-url" class="sr">X post link</label>
+        <input id="x-url" type="url" placeholder="https://x.com/user/status/1234…" inputmode="url">
+        <button type="submit">Add X post</button>
+      </form>
+      <p class="admin-row"><button type="button" id="refresh-btn" class="secondary">Check Bluesky now</button></p>
+
+      <h2>Posts</h2>
+      <p class="admin-legend">Visible posts show on the letter. Filtered posts were dropped automatically; hidden posts were removed by you.</p>
+      <ul id="post-list" class="admin-list"></ul>
+    </div>
+  </main>
+  <script src="/admin.js" defer></script>
+</body>
+</html>

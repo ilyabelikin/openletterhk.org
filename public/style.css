@@ -338,3 +338,110 @@ button:disabled { opacity: .6; cursor: progress; }
 .ico { width: 1.15rem; height: 1.15rem; flex: none; fill: currentColor; }
 .ico-line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #share-status { margin-top: .9rem; }
+
+/* ── #openletterhk stream ─────────────────────────────────────── */
+
+body { overflow-x: clip; }
+
+.stream {
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  padding-top: clamp(2rem, 5vw, 3rem);
+  border-top: 1px solid var(--rule);
+}
+.stream[hidden], .ticker[hidden], .stream-empty[hidden] { display: none; }
+
+/* Full-bleed strip with faded edges. */
+.ticker {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  overflow: hidden;
+  padding: .25rem 0 .75rem;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+}
+.ticker-track {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  width: max-content;
+  animation: ticker var(--ticker-duration, 60s) linear infinite;
+}
+.ticker:hover .ticker-track,
+.ticker:focus-within .ticker-track { animation-play-state: paused; }
+@keyframes ticker { to { transform: translateX(-50%); } }
+
+/* Margin, not gap, so the duplicated half lines up exactly at -50%. */
+.ticker-track li { margin-right: 1rem; }
+
+.post-card {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  width: 19rem;
+  height: 100%;
+  padding: 1rem 1.1rem;
+  color: var(--ink);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  text-decoration: none;
+}
+.post-card:hover { border-color: var(--ink-faint); }
+.post-text {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.post-meta {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .8125rem;
+  color: var(--ink-faint);
+  min-width: 0;
+}
+.post-meta .ico { width: .95rem; height: .95rem; color: var(--ink-soft); }
+.post-name { font-weight: 600; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.post-handle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.post-date { margin-left: auto; white-space: nowrap; }
+
+.stream-empty { margin: 0; color: var(--ink-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker { overflow-x: auto; }
+  .ticker-track { animation: none; padding: 0 16px; }
+}
+
+/* ── Admin ────────────────────────────────────────────────────── */
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.admin h1 { font-size: clamp(2rem, 6vw, 2.75rem); }
+.admin-row { display: flex; flex-wrap: wrap; gap: .6rem; margin: 0 0 1rem; }
+.admin-row input { flex: 1 1 16rem; }
+button.secondary { color: var(--ink); background: var(--bg-raised); border: 1px solid var(--rule); }
+.admin-feed { font-size: .875rem; color: var(--ink-soft); margin: 0 0 1.25rem; }
+.admin-legend { color: var(--ink-soft); font-size: .9375rem; }
+.admin-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.admin-item { padding: .9rem 1rem; background: var(--bg-raised); border: 1px solid var(--rule); border-radius: 8px; }
+.admin-item.is-filtered, .admin-item.is-hidden { opacity: .72; }
+.admin-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .75rem; font-size: .8125rem; color: var(--ink-soft); }
+.admin-author { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.admin-date { margin-left: auto; }
+.admin-badge { font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: .75rem; }
+.badge-visible { color: var(--ok); }
+.badge-filtered { color: var(--ink-soft); text-transform: none; letter-spacing: 0; }
+.badge-hidden { color: var(--err); }
+.admin-text { margin: .5rem 0 .75rem; white-space: pre-line; overflow-wrap: anywhere; font-family: var(--serif); }
+.admin-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.admin-actions a { color: var(--ink-soft); }
+.admin-actions button { min-height: 36px; padding: .4rem .9rem; font-size: .875rem; }
+.admin-empty { color: var(--ink-soft); }

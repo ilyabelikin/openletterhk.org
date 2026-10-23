@@ -7,6 +7,8 @@ module.exports = {
       script: `${root}/server.js`,
       interpreter: '/root/.nvm/versions/node/v22.12.0/bin/node',
       cwd: root,
+      // ADMIN_KEY (and any other secrets) live in .env on the server, never in git.
+      node_args: `--env-file-if-exists=${root}/.env`,
       env: {
         NODE_ENV: 'production',
         HOST: '127.0.0.1',

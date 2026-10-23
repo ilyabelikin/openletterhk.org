@@ -7,6 +7,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { createStream } = require('./stream');
 
 const PORT = Number(process.env.PORT) || 3010;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -40,6 +41,45 @@ function persist() {
     .then(() => fs.promises.rename(DATA_FILE + '.tmp', DATA_FILE))
     .catch(err => console.error('Could not persist signatures:', err));
   return writeChain;
+}
+
+// ── #openletterhk stream ──────────────────────────────────────────────────
+
+const stream = createStream(DATA_DIR);
+const ADMIN_KEY = process.env.ADMIN_KEY || '';
+
+function isAdmin(req) {
+  if (!ADMIN_KEY) return false;
+  const given = Buffer.from(String(req.headers['x-admin-key'] || ''));
+  const want = Buffer.from(ADMIN_KEY);
+  return given.length === want.length && crypto.timingSafeEqual(given, want);
+}
+
+async function handleAdmin(req, res, pathname) {
+  if (!ADMIN_KEY) return sendJson(res, 503, { error: 'Admin is not configured on this server.' });
+  if (!isAdmin(req)) return sendJson(res, 401, { error: 'Wrong admin key.' });
+
+  if (pathname === '/api/admin/stream' && req.method === 'GET') {
+    return sendJson(res, 200, { status: stream.status(), posts: stream.all() });
+  }
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
+
+  let body;
+  try { body = await readJsonBody(req); }
+  catch (err) { return sendJson(res, err.status || 400, { error: err.message }); }
+
+  try {
+    switch (pathname) {
+      case '/api/admin/hide':     stream.setHidden(body.id, true);  return sendJson(res, 200, { ok: true });
+      case '/api/admin/unhide':   stream.setHidden(body.id, false); return sendJson(res, 200, { ok: true });
+      case '/api/admin/x-add':    return sendJson(res, 201, { ok: true, post: await stream.addX(body.url) });
+      case '/api/admin/x-remove': stream.removeX(body.url); return sendJson(res, 200, { ok: true });
+      case '/api/admin/refresh':  await stream.pollBluesky(); return sendJson(res, 200, { ok: true, status: stream.status() });
+      default:                    return sendJson(res, 404, { error: 'Not found' });
+    }
+  } catch (err) {
+    return sendJson(res, err.status || 500, { error: err.status ? err.message : 'Something went wrong.' });
+  }
 }
 
 // ── Rate limiting ──────────────────────────────────────────────────────────
@@ -210,7 +250,7 @@ async function handleSign(req, res) {
 // ── Static files ───────────────────────────────────────────────────────────
 
 function serveStatic(req, res, pathname) {
-  const rel = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
+  const rel = pathname === '/' ? '/index.html' : pathname === '/admin' ? '/admin.html' : decodeURIComponent(pathname);
   const file = path.normalize(path.join(PUBLIC_DIR, rel));
   if (!file.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(404, baseHeaders()); return res.end('Not found'); }
 
@@ -253,6 +293,13 @@ const server = http.createServer((req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
     return handleSign(req, res).catch(err => { console.error(err); sendJson(res, 500, { error: 'Something went wrong. Please try again.' }); });
   }
+  if (url.pathname === '/api/stream') {
+    if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
+    return sendJson(res, 200, { tag: stream.status().tag, posts: stream.visible() });
+  }
+  if (url.pathname.startsWith('/api/admin/')) {
+    return handleAdmin(req, res, url.pathname).catch(err => { console.error(err); sendJson(res, 500, { error: 'Something went wrong.' }); });
+  }
   if (url.pathname.startsWith('/api/')) return sendJson(res, 404, { error: 'Not found' });
 
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, baseHeaders()); return res.end(); }
@@ -260,6 +307,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
+  stream.start();
   console.log(`openletterhk.org listening on http://${HOST}:${PORT} — ${signatures.length} signatures loaded`);
 });
 
