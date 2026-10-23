@@ -331,7 +331,7 @@ async function handleSign(req, res) {
 // ── Static files ───────────────────────────────────────────────────────────
 
 function serveStatic(req, res, pathname) {
-  const ROUTES = { '/': '/index.html', '/admin': '/admin.html', '/admin/signatures': '/admin-signatures.html', '/yue': '/yue/index.html', '/yue/': '/yue/index.html' };
+  const ROUTES = { '/': '/index.html', '/admin': '/admin.html', '/admin/signatures': '/admin-signatures.html', '/yue': '/yue/index.html', '/yue/': '/yue/index.html', '/zh-hk': '/zh-hk/index.html', '/zh-hk/': '/zh-hk/index.html' };
   const rel = ROUTES[pathname] || decodeURIComponent(pathname);
   const file = path.normalize(path.join(PUBLIC_DIR, rel));
   if (!file.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(404, baseHeaders()); return res.end('Not found'); }

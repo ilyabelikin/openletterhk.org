@@ -45,7 +45,7 @@ function normaliseForTemplate(text) {
 }
 const TEMPLATES = (() => {
   const out = [];
-  for (const lang of ['en', 'yue']) {
+  for (const lang of ['en', 'yue', 'zh']) {
     try {
       const t = JSON.parse(fs.readFileSync(path.join(__dirname, 'i18n', lang + '.json'), 'utf8')).share.share_text;
       if (t) out.push(normaliseForTemplate(t));

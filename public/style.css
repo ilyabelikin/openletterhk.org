@@ -472,3 +472,4 @@ button.secondary { color: var(--ink); background: var(--bg-raised); border: 1px 
 .admin-tabs a { padding: .6rem .9rem; color: var(--ink-soft); font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .admin-tabs a:hover { color: var(--ink); }
 .admin-tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.lang-switch a + a { margin-left: .9rem; }

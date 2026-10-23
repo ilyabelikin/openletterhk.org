@@ -1,0 +1,89 @@
+{
+  "letter": {
+    "before": [
+      "{{Anthropic}} 在 {{Claude Code}} 上實施的歧視性措施，實在前所未有。多年來，即使是專制政府，也容許 VPN 用戶使用外國的產品及服務 ── Instagram 在中國的受歡迎程度便是一大例子。與此同時，Anthropic 侵犯用戶私隱的程度同樣前所未聞 ── 他們以一種無人敢用，也無人能大規模部署的手段來追蹤用戶。這是一種極其令人不安的做法。",
+      "作為一個出生於蘇聯鐵幕之下的人，我深感憂慮世界正步入 AI 冷戰的新時代。地緣政治的荒謬鬧劇，竟令致力建立 super intelligent systems 的優秀人們，開始大規模歧視個人與企業。"
+    ],
+    "refrain": [
+      "監視你的客戶，再僅因他們曾到訪或逗留在你們不喜歡的地方而加以懲罰，這種行徑，無可辯解。",
+      "懲罰海外地區的居民、迫使他們的生活和工作方式落後於世界各地，並剝奪他們選擇使用何種 AI 的權利，同樣無可辯解。",
+      "既聰明又渾然不覺 ── 這種矛盾，亦無可辯解。"
+    ],
+    "after": [
+      "我認為 Anthropic 應該擁抱競爭，平等地向世界各地每一個人開放其產品及服務。AI 數據處理正逐漸轉移到日常裝置上進行，而雲端超級智能（cloud super intelligence）則即將來臨，並會在人類生活中發揮極其重要的作用。它能協助治癒疾病、擺脫貧窮，亦會在這段充滿挑戰和變革的時期創造就業機會。",
+      "要站在歷史正確的一方，Anthropic 以何種原則看待互聯網，便應以同一原則對待自家的模型與產品。畢竟，他們 AI 的「智能」正是從互聯網汲取的。別告訴我們你們可以一面四處抓取香港網站的內容，一面禁止身處香港的人使用你們的 AI。這種虛偽極度令人反感。",
+      "互聯網的誕生，是為了造福人類社會，以及讓世界上每一位使用者受惠。AI 亦應如此。",
+      "安全至關重要，而平等與共融同樣重要。你們必須兩者兼顧。",
+      "撇開其他不談，這也是更好的營商之道。你們擁有最出色的編程模型。就讓身處香港的人使用它，然後在價格及效能上公平競爭，比競爭對手走得更快，創造更多價值。"
+    ]
+  },
+  "page": {
+    "title": "一封來自香港致 Anthropic 的公開信",
+    "description": "一封來自香港的公開信，要求 Anthropic 停止對 Claude 的歧視性限制，並以對待開放互聯網的原則對待其 AI。加入聯署。",
+    "og_description": "因人們身處何地而懲罰他們，無可辯解。閱讀這封公開信並加入聯署。",
+    "kicker": "一封來自香港的公開信",
+    "h1_line1": "致 Anthropic：",
+    "h1_line2": "",
+    "dateline": "2026 年 10 月",
+    "signoff_role": "{{Haah, Inc.}} 創辦人",
+    "language_switch_label": "中文"
+  },
+  "sign": {
+    "heading": "加入聯署",
+    "lede": "你可以使用真實姓名或匿名聯署。如果你的業務或公司受到 Claude Code 對地區的限制措施影響，請附上相關網站。",
+    "legend": "你希望如何署名？",
+    "opt_named": "使用真實姓名",
+    "opt_anon": "匿名",
+    "label_name": "姓名",
+    "hint_required": "（必填）",
+    "label_website": "網站",
+    "hint_website": "（選填：受影響的業務或公司）",
+    "submit": "簽署這封公開信",
+    "status_need_name": "請輸入你的姓名，或選擇匿名聯署。",
+    "status_adding": "正在加入你的聯署……",
+    "status_checking": "正在檢查網站並加入你的聯署……",
+    "status_thanks": "謝謝！你的聯署已加入。請分享這封公開信，讓更多人看見。",
+    "status_error": "發生錯誤，請再試一次。",
+    "status_network": "網絡錯誤，請檢查連線後再試一次。",
+    "error_name_invalid": "請輸入你的姓名（最多 80 個字元，不可包含連結）。",
+    "error_name_not_a_name": "請只輸入你的姓名 ── 這裡收集的是聯署，而非留言。",
+    "error_website_invalid": "網址格式似乎不正確，請再檢查。",
+    "error_website_unreachable": "無法連接此網站，請檢查網址，或將網站一欄留空。",
+    "error_duplicate": "此姓名及網站已經聯署，謝謝！",
+    "error_rate_limited": "嘗試次數過多，請稍後再試。"
+  },
+  "share": {
+    "heading": "分享這封公開信",
+    "lede": "閱讀的人越多，聲音就越響亮。發文時請使用 {{#openletterhk}}。本站不會追蹤你；所有按鈕只會開啟相應的網站。",
+    "share_text": "一封來自香港致 Anthropic 的公開信：讓世界上每一個人都能平等使用 Claude。閱讀並加入聯署。",
+    "email_subject": "一封來自香港致 Anthropic 的公開信",
+    "btn_native": "分享……",
+    "btn_copy": "複製連結",
+    "btn_email": "電郵",
+    "status_copied": "已複製連結，可貼到任何地方。",
+    "status_copy_failed": "無法自動複製。連結為",
+    "status_native_failed": "此處不支援分享功能，請改用「複製連結」。",
+    "status_instagram_sheet": "請在分享選單中選擇 Instagram，並在帖文說明或連結貼紙中加入 openletterhk.org。",
+    "status_instagram_download": "圖片已下載。請在 Instagram 發佈，並在帖文說明或個人簡介中加入 openletterhk.org。"
+  },
+  "stream": {
+    "lede": "看看大家在 Bluesky 和 X 上的討論。使用 {{#openletterhk}} 發文，加入討論。",
+    "empty": "目前尚無帖文。成為首位使用 {{#openletterhk}} 分享這封公開信的人。"
+  },
+  "undersigned": {
+    "heading": "聯署人",
+    "loading": "正在載入聯署名單……",
+    "load_failed": "暫時無法載入聯署名單。",
+    "first": "成為首位聯署人。",
+    "count_template": "共 {{total}} 人聯署 ── {{named}} 人具名，{{anonymous}} 人匿名。"
+  },
+  "footer": {
+    "privacy": "{{私隱：}}本頁面沒有設定 Cookie、不會載入任何第三方內容，亦不會進行任何數據分析。我們只會儲存你在表格中輸入的內容。匿名聯署只會計入總數，不會保留其他資料。#openletterhk 動態中的帖文由我們的伺服器從 Bluesky 和 X 擷取；你的瀏覽器不會直接連接這些平台。",
+    "license": "信件內容 © 作者，以 {{CC BY 4.0}} 授權，歡迎自由分享。網站原始碼託管於 {{GitHub}}。",
+    "made": "於香港使用 {{Claude Code}} 及 Fable 5.1 製作。"
+  },
+  "cards": {
+    "quote": "安全至關重要，而平等與共融同樣重要。你們必須兩者兼顧。",
+    "cta": "閱讀並加入聯署"
+  }
+}
