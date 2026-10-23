@@ -12,13 +12,16 @@ set -e
 SERVER="root@5.223.89.26"
 ROOT="/var/www/openletterhk.org"
 REPO="https://github.com/ilyabelikin/openletterhk.org.git"
-PM2="/root/.nvm/versions/node/v22.12.0/bin/pm2"
+NODE_BIN="/root/.nvm/versions/node/v22.12.0/bin"
+PM2="$NODE_BIN/pm2"
 PORT=3010
 
 echo "🚀 Deploying to $SERVER..."
 
 ssh "$SERVER" "bash -s" <<ENDSSH
 set -e
+# pm2 is a script with a #!/usr/bin/env node shebang; a non-interactive shell has no nvm on PATH.
+export PATH="$NODE_BIN:\$PATH"
 
 if [ ! -d "$ROOT/.git" ]; then
   echo "📥 Cloning repository for the first time..."
