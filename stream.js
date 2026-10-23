@@ -32,6 +32,32 @@ const BAD_LABELS = new Set([
 // Lower-case substrings; extend in data/blocked-words.txt (one per line).
 const DEFAULT_BLOCKED = ['onlyfans', 'airdrop', 'giveaway', 'nsfw', 'porn', 'casino', 'free crypto'];
 
+// Posts that are just our suggested share text add nothing to the strip.
+// Compare with links, the hashtag, punctuation, spacing and case removed;
+// a few extra characters (emoji, "+1") still count as the template.
+const TEMPLATE_SLACK = 8;
+function normaliseForTemplate(text) {
+  return String(text).toLowerCase()
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/(?:www\.)?openletterhk\.org(?:\/\S*)?/g, ' ')
+    .replace(new RegExp('#' + TAG, 'g'), ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, '');
+}
+const TEMPLATES = (() => {
+  const out = [];
+  for (const lang of ['en', 'yue']) {
+    try {
+      const t = JSON.parse(fs.readFileSync(path.join(__dirname, 'i18n', lang + '.json'), 'utf8')).share.share_text;
+      if (t) out.push(normaliseForTemplate(t));
+    } catch {}
+  }
+  return out;
+})();
+function isShareTemplate(text) {
+  const n = normaliseForTemplate(text);
+  return TEMPLATES.some(t => n === t || (n.includes(t) && n.length - t.length <= TEMPLATE_SLACK));
+}
+
 function createStream(dataDir) {
   const file = name => path.join(dataDir, name);
   const readJson = (name, fallback) => {
@@ -83,6 +109,7 @@ function createStream(dataDir) {
     const bad = [...new Set(labels.filter(l => l.startsWith('!') || BAD_LABELS.has(l)))];
     if (bad.length) return `labelled by Bluesky moderation (${bad.join(', ')})`;
     if (!hasTag(rec)) return 'does not contain the hashtag';
+    if (isShareTemplate(rec.text || '')) return 'unedited share template';
     const text = (rec.text || '').trim();
     if (text.length < FILTERS.minTextLength) return 'too short';
     const lower = text.toLowerCase();
@@ -201,7 +228,7 @@ function createStream(dataDir) {
     // oEmbed only gives a calendar date; pin to midday UTC so the day reads the same in every timezone.
     const at = p.at ? p.at.slice(0, 10) + 'T12:00:00.000Z' : p.addedAt;
     return { id: 'x:' + p.url, source: 'x', name: p.name, handle: p.handle, url: p.url, text: p.text, at, precision: p.at ? 'day' : 'time',
-             filteredReason: p.error ? 'could not load from X' : (!p.text ? 'empty' : null) };
+             filteredReason: p.error ? 'could not load from X' : !p.text ? 'empty' : isShareTemplate(p.text) ? 'unedited share template' : null };
   }
 
   function all() {
@@ -248,4 +275,4 @@ function createStream(dataDir) {
   return { start, visible, all, addX, removeX, setHidden, status, pollBluesky };
 }
 
-module.exports = { createStream };
+module.exports = { createStream, isShareTemplate, TEMPLATES };
