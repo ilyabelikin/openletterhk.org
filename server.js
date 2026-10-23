@@ -7,6 +7,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const dns = require('dns').promises;
+const net = require('net');
 const { createStream } = require('./stream');
 
 const PORT = Number(process.env.PORT) || 3010;
@@ -87,27 +89,33 @@ async function handleAdmin(req, res, pathname) {
 
 const SALT = crypto.randomBytes(16);
 const hits = new Map();
+const checkHits = new Map();
+const WEBSITE_CHECKS_PER_HOUR = 20;
 
 function clientIp(req) {
   const xff = req.headers['x-forwarded-for'];
   return (xff ? String(xff).split(',')[0].trim() : req.socket.remoteAddress) || 'unknown';
 }
 
-function rateLimited(req) {
+function overLimit(map, limit, req) {
   const key = crypto.createHash('sha256').update(SALT).update(clientIp(req)).digest('base64');
   const now = Date.now();
-  const recent = (hits.get(key) || []).filter(t => now - t < RATE_WINDOW_MS);
-  if (recent.length >= RATE_LIMIT) { hits.set(key, recent); return true; }
+  const recent = (map.get(key) || []).filter(t => now - t < RATE_WINDOW_MS);
+  if (recent.length >= limit) { map.set(key, recent); return true; }
   recent.push(now);
-  hits.set(key, recent);
+  map.set(key, recent);
   return false;
 }
+const rateLimited = req => overLimit(hits, RATE_LIMIT, req);
+const websiteCheckLimited = req => overLimit(checkHits, WEBSITE_CHECKS_PER_HOUR, req);
 
 setInterval(() => {
   const now = Date.now();
-  for (const [key, times] of hits) {
-    const recent = times.filter(t => now - t < RATE_WINDOW_MS);
-    if (recent.length) hits.set(key, recent); else hits.delete(key);
+  for (const map of [hits, checkHits]) {
+    for (const [key, times] of map) {
+      const recent = times.filter(t => now - t < RATE_WINDOW_MS);
+      if (recent.length) map.set(key, recent); else map.delete(key);
+    }
   }
 }, 10 * 60 * 1000).unref();
 
@@ -131,9 +139,56 @@ function cleanWebsite(raw) {
   let url;
   try { url = new URL(s); } catch { return null; }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-  if (url.username || url.password) return null;
-  if (!url.hostname.includes('.')) return null;
+  if (url.username || url.password || url.port) return null;
+  // Real DNS names only: letters/digits/hyphens per label and a plausible TLD.
+  // (The URL parser accepts commas and other oddities, e.g. "www.joinvision,group".)
+  const labels = url.hostname.toLowerCase().split('.');
+  if (labels.length < 2 || url.hostname.length > 253) return null;
+  if (!labels.every(l => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(l))) return null;
+  if (!/^(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$/.test(labels[labels.length - 1])) return null;
   return url.href;
+}
+
+// ── Website reachability ───────────────────────────────────────────────────
+// Any HTTP response proves the site exists (many answer bots with 403). The
+// server must not become a proxy into private networks: resolve first and
+// refuse private/loopback/link-local addresses, default ports only, and never
+// follow redirects (the first response is enough).
+
+function isPrivateAddress(ip) {
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split('.').map(Number);
+    return a === 0 || a === 10 || a === 127 || a >= 224 ||
+      (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) ||
+      (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19));
+  }
+  const v6 = ip.toLowerCase();
+  if (v6.startsWith('::ffff:')) return isPrivateAddress(v6.slice(7));
+  return v6 === '::' || v6 === '::1' || /^f[cd]/.test(v6) || /^fe[89ab]/.test(v6) || v6.startsWith('ff');
+}
+
+async function probe(url) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const res = await fetch(url, { method: 'GET', redirect: 'manual', signal: ctl.signal,
+      headers: { 'User-Agent': 'openletterhk.org website check (+https://openletterhk.org)', Accept: 'text/html,*/*' } });
+    res.body?.cancel().catch(() => {});
+    return res.status > 0;
+  } catch { return false; }
+  finally { clearTimeout(timer); }
+}
+
+async function websiteReachable(href) {
+  const u = new URL(href);
+  let addrs;
+  try { addrs = await dns.lookup(u.hostname, { all: true, verbatim: true }); } catch { return false; }
+  if (!addrs.length || addrs.some(a => isPrivateAddress(a.address))) return false;
+  const https = new URL(u.href); https.protocol = 'https:';
+  if (await probe(https.href)) return true;
+  const http = new URL(u.href); http.protocol = 'http:';
+  return probe(http.href);
 }
 
 function hostOf(url) {
@@ -224,21 +279,27 @@ async function handleSign(req, res) {
 
   if (!anonymous) {
     const name = cleanName(body.name);
-    if (!name) return sendJson(res, 400, { error: 'Please enter your name (up to 80 characters, no links).' });
+    if (!name) return sendJson(res, 400, { code: 'name_invalid', error: 'Please enter your name (up to 80 characters, no links).' });
     const website = cleanWebsite(body.website);
-    if (website === null) return sendJson(res, 400, { error: 'That website address does not look valid.' });
+    if (website === null) return sendJson(res, 400, { code: 'website_invalid', error: 'That website address does not look valid. Please check it.' });
 
     if (website) {
       const host = hostOf(website);
       const dup = signatures.some(s => !s.anonymous && s.website && hostOf(s.website) === host && s.name.toLowerCase() === name.toLowerCase());
-      if (dup) return sendJson(res, 409, { error: 'This name and website have already signed. Thank you!' });
+      if (dup) return sendJson(res, 409, { code: 'duplicate', error: 'This name and website have already signed. Thank you!' });
+      if (websiteCheckLimited(req)) {
+        return sendJson(res, 429, { code: 'rate_limited', error: 'Too many attempts from your connection. Please try again later.' });
+      }
+      if (!(await websiteReachable(website))) {
+        return sendJson(res, 422, { code: 'website_unreachable', error: `We couldn't reach ${new URL(website).hostname}. Please check the address, or leave the website empty.` });
+      }
     }
     record.name = name;
     if (website) record.website = website;
   }
 
   if (rateLimited(req)) {
-    return sendJson(res, 429, { error: 'Too many signatures from your connection. Please try again later.' });
+    return sendJson(res, 429, { code: 'rate_limited', error: 'Too many signatures from your connection. Please try again later.' });
   }
 
   signatures.push(record);

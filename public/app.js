@@ -6,6 +6,7 @@
   const T = Object.assign({
     need_name: 'Please enter your name, or choose to sign anonymously.',
     adding: 'Adding your signature…',
+    checking: 'Checking the website and adding your signature…',
     thanks: 'Thank you — your signature has been added. Now help it travel: share the letter below.',
     error: 'Something went wrong. Please try again.',
     network: 'Network error. Please check your connection and try again.',
@@ -136,7 +137,7 @@
     }
 
     submitBtn.disabled = true;
-    setStatus(T.adding);
+    setStatus(payload.website && payload.website.trim() ? T.checking : T.adding);
 
     try {
       const res = await fetch('/api/sign', {
@@ -152,7 +153,7 @@
         websiteInput.value = '';
         await loadSignatures();
       } else {
-        setStatus(data.error || T.error, 'err');
+        setStatus((data.code && T[data.code]) || data.error || T.error, 'err');
       }
     } catch {
       setStatus(T.network, 'err');

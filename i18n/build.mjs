@@ -129,6 +129,9 @@ html = html.slice(0, footStart) + `<footer class="colophon">
 // ── UI strings for app.js (JSON data block: not executed, allowed by the CSP)
 const T = {
   need_name: yue.sign.status_need_name, adding: yue.sign.status_adding, thanks: yue.sign.status_thanks,
+  checking: yue.sign.status_checking,
+  name_invalid: yue.sign.error_name_invalid, website_invalid: yue.sign.error_website_invalid,
+  website_unreachable: yue.sign.error_website_unreachable, duplicate: yue.sign.error_duplicate, rate_limited: yue.sign.error_rate_limited,
   error: yue.sign.status_error, network: yue.sign.status_network,
   first: yue.undersigned.first, load_failed: yue.undersigned.load_failed, count: yue.undersigned.count_template,
   copied: yue.share.status_copied, copy_failed: yue.share.status_copy_failed, native_failed: yue.share.status_native_failed,
