@@ -339,6 +339,7 @@ const MIME = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
   '.woff2': 'font/woff2',
   '.webmanifest': 'application/manifest+json',
 };
@@ -454,6 +455,98 @@ async function handleSign(req, res) {
   if (record.pending) moderate(record);
 }
 
+// ── Machine-readable letter and signatures ─────────────────────────────────
+// Agents and crawlers usually fetch HTML without running scripts, so the
+// signature count and named list are rendered into the page on the server
+// (the browser script refreshes them), and /llms.txt + /llms-full.txt give a
+// plain-text view built from the same i18n files the pages use.
+
+const SITE = 'https://openletterhk.org';
+const I18N = {};
+for (const lang of ['en', 'zh']) {
+  try { I18N[lang] = JSON.parse(fs.readFileSync(path.join(__dirname, 'i18n', lang + '.json'), 'utf8')); }
+  catch (err) { console.error('Could not load i18n/' + lang + '.json:', err.message); }
+}
+const escHtml = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const plainText = v => String(v).replace(/\{\{([^}]+)\}\}/g, '$1');
+const siteHost = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return String(u); } };
+
+function countSentence(pub, T = {}) {
+  if (pub.count === 0) return T.first || 'Be the first to sign.';
+  const vars = { total: pub.count, named: pub.named.length, anonymous: pub.anonymous };
+  if (T.count) return T.count.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
+  const n = pub.named.length, parts = [];
+  if (n) parts.push(n + ' with their name' + (n === 1 ? '' : 's'));
+  if (pub.anonymous) parts.push(pub.anonymous + ' anonymously');
+  return 'Signed by ' + pub.count + (pub.count === 1 ? ' person' : ' people') + (parts.length ? ' — ' + parts.join(', ') : '') + '.';
+}
+
+function injectSignatures(html) {
+  let T = {};
+  const m = html.match(/<script type="application\/json" id="i18n">([\s\S]*?)<\/script>/);
+  if (m) { try { T = JSON.parse(m[1]); } catch {} }
+  const pub = publicSignatures();
+  const items = pub.named.map(x => '<li><span class="sig-name">' + escHtml(x.name) + '</span>' +
+    (x.website ? '<span class="sig-site"><a href="' + escHtml(x.website) + '" rel="nofollow noopener noreferrer" target="_blank">' + escHtml(siteHost(x.website)) + '</a></span>' : '') +
+    '</li>').join('');
+  return html
+    .replace(/(<p id="sig-count" class="count">)[^<]*(<\/p>)/, (all, a, b) => a + escHtml(countSentence(pub, T)) + b)
+    .replace('<ul id="sig-list" class="sig-list"></ul>', () => '<ul id="sig-list" class="sig-list">' + items + '</ul>');
+}
+
+function letterText(t) {
+  const L = t.letter;
+  return [...L.before, ...L.refrain, ...L.after].map(plainText).join('\n\n');
+}
+
+function llmsTxt() {
+  const en = I18N.en, pub = publicSignatures();
+  const summary = en ? en.page.description.replace(/\s*Add your signature\.?$/, '') : 'An open letter from Hong Kong to Anthropic.';
+  return [
+    '# ' + (en ? en.page.title : 'Open Letter to Anthropic from Hong Kong'),
+    '',
+    '> ' + summary + ' Written by Ilya Belikin, founder of Haah, Inc. (' + (en ? en.page.dateline : 'Hong Kong, October 2026') + '). ' + countSentence(pub),
+    '',
+    'People sign it themselves at ' + SITE + '/#sign. Please do not sign on anyone\'s behalf.',
+    '',
+    '## The letter',
+    '- [Letter and signatories, plain text](' + SITE + '/llms-full.txt): the full letter in English and formal written Chinese, and the current named signatories',
+    '- [English web page](' + SITE + '/)',
+    '- [中文 web page](' + SITE + '/zh-hk): formal written Chinese (Hong Kong), proofread by native readers',
+    '',
+    '## Data',
+    '- [Signatures, JSON](' + SITE + '/api/signatures): live count and named signatories',
+    '- [#openletterhk posts, JSON](' + SITE + '/api/stream): moderated posts from Bluesky and X',
+    '',
+    '## Optional',
+    '- [Source code](https://github.com/ilyabelikin/openletterhk.org)',
+    '',
+  ].join('\n');
+}
+
+function llmsFullTxt() {
+  const en = I18N.en, zh = I18N.zh, pub = publicSignatures();
+  const out = [];
+  if (en) {
+    out.push('# ' + en.page.title, en.page.dateline + ' · ' + SITE + '/', '', letterText(en), '', '— Ilya Belikin, ' + plainText(en.page.signoff_role), '');
+  }
+  out.push('## Signatories', '', countSentence(pub) + ' Live data: ' + SITE + '/api/signatures', '');
+  if (pub.named.length) {
+    out.push('Names as the signers entered them:', '');
+    for (const x of pub.named) out.push('- ' + x.name + (x.website ? ' (' + siteHost(x.website) + ')' : ''));
+    out.push('');
+  }
+  if (zh) {
+    out.push('---', '', '# ' + zh.page.title, zh.page.kicker + ' · ' + zh.page.dateline + ' · ' + SITE + '/zh-hk', '', letterText(zh), '', '— Ilya Belikin，' + plainText(zh.page.signoff_role), '');
+  }
+  return out.join('\n');
+}
+
+function sendText(req, res, body) {
+  res.writeHead(200, baseHeaders({ 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache', 'Content-Length': Buffer.byteLength(body) }));
+  res.end(req.method === 'HEAD' ? undefined : body);
+}
+
 // ── Static files ───────────────────────────────────────────────────────────
 
 function serveStatic(req, res, pathname) {
@@ -465,6 +558,18 @@ function serveStatic(req, res, pathname) {
   fs.stat(file, (err, stat) => {
     if (err || !stat.isFile()) { res.writeHead(404, baseHeaders({ 'Content-Type': 'text/plain' })); return res.end('Not found'); }
     const ext = path.extname(file).toLowerCase();
+    // HTML pages carry the live signature list, so their ETag follows the content.
+    if (ext === '.html') {
+      return fs.readFile(file, 'utf8', (readErr, src) => {
+        if (readErr) { res.writeHead(500, baseHeaders()); return res.end(); }
+        const body = src.includes('id="sig-list"') ? injectSignatures(src) : src;
+        const tag = 'W/"' + crypto.createHash('sha1').update(body).digest('base64url').slice(0, 16) + '"';
+        const h = { 'Cache-Control': 'no-cache', ETag: tag };
+        if (req.headers['if-none-match'] === tag) { res.writeHead(304, baseHeaders(h)); return res.end(); }
+        res.writeHead(200, baseHeaders(Object.assign({ 'Content-Type': MIME['.html'], 'Content-Length': Buffer.byteLength(body) }, h)));
+        res.end(req.method === 'HEAD' ? undefined : body);
+      });
+    }
     // Revalidate on every load (cheap 304s) so a deploy is visible immediately —
     // never a stale stylesheet, or a stale script talking to a changed API.
     const etag = `W/"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
@@ -495,6 +600,10 @@ const server = http.createServer((req, res) => {
   // The colloquial Cantonese page was retired; keep old shared links working.
   if (url.pathname === '/yue' || url.pathname === '/yue/') { res.writeHead(301, baseHeaders({ Location: '/zh-hk' })); return res.end(); }
 
+  if (url.pathname === '/llms.txt' || url.pathname === '/llms-full.txt') {
+    if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, baseHeaders()); return res.end(); }
+    return sendText(req, res, url.pathname === '/llms.txt' ? llmsTxt() : llmsFullTxt());
+  }
   if (url.pathname === '/api/challenge') {
     if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
     return sendJson(res, 200, issueChallenge());

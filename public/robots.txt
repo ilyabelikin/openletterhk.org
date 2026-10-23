@@ -1,0 +1,7 @@
+# The letter and its signatures are public: people, search engines and AI agents are welcome.
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/admin/
+
+Sitemap: https://openletterhk.org/sitemap.xml
