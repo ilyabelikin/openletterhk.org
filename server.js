@@ -11,6 +11,7 @@ const dns = require('dns').promises;
 const net = require('net');
 const { createStream } = require('./stream');
 const { notANameReason, blockedReason } = require('./moderation');
+const { createAiModerator } = require('./ai-moderation');
 
 const PORT = Number(process.env.PORT) || 3010;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -21,8 +22,9 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const MAX_BODY = 8 * 1024;
 const MAX_NAME = 80;
 const MAX_WEBSITE = 200;
-const RATE_LIMIT = 5;                   // signatures per connection per window
-const RATE_WINDOW_MS = 60 * 60 * 1000;  // 1 hour
+const SUBMISSIONS_PER_DAY = 3;          // stored signatures per connection per 24h
+const DAY_MS = 24 * 60 * 60 * 1000;
+const RATE_WINDOW_MS = 60 * 60 * 1000;  // website-check budget window (1 hour)
 
 // ── Storage ────────────────────────────────────────────────────────────────
 
@@ -46,6 +48,24 @@ function persist() {
   return writeChain;
 }
 
+// ── AI moderation ──────────────────────────────────────────────────────────
+// Named signatures are saved "pending" (not public) and published once the
+// model says "show"; "hide" verdicts are auto-hidden with the reason. If the
+// model is unreachable after retries, the signature is published and marked
+// unchecked so a moderator can review it.
+
+const ai = createAiModerator({ key: process.env.OPENROUTER_API_KEY, model: process.env.MODERATION_MODEL || undefined });
+
+function moderate(record) {
+  return ai.check(record.name, record.website).then(v => {
+    record.ai = { verdict: v.verdict, reason: v.reason, at: new Date().toISOString(), model: ai.model };
+    if (v.verdict === 'hide' && !record.hidden) { record.hidden = true; record.autoHidden = 'AI moderation: ' + v.reason; }
+  }, err => {
+    record.ai = { verdict: 'unchecked', error: String(err.message || err).slice(0, 200), at: new Date().toISOString(), model: ai.model };
+    console.error('AI moderation failed for', record.id, record.ai.error);
+  }).finally(() => { delete record.pending; return persist(); });
+}
+
 // ── #openletterhk stream ──────────────────────────────────────────────────
 
 const stream = createStream(DATA_DIR);
@@ -67,7 +87,7 @@ async function handleAdmin(req, res, pathname) {
   }
   if (pathname === '/api/admin/signatures' && req.method === 'GET') {
     const named = signatures.filter(s => !s.anonymous).slice().reverse()
-      .map(s => ({ id: s.id, name: s.name, website: s.website || '', at: s.at, hidden: !!s.hidden, autoHidden: s.autoHidden || null, flagged: notANameReason(s.name) }));
+      .map(s => ({ id: s.id, name: s.name, website: s.website || '', at: s.at, hidden: !!s.hidden, autoHidden: s.autoHidden || null, pending: !!s.pending, ai: s.ai || null, flagged: notANameReason(s.name) }));
     const anon = signatures.filter(s => s.anonymous);
     return sendJson(res, 200, { named, anonymous: anon.filter(s => !s.hidden).length, anonymousHidden: anon.filter(s => s.hidden).length });
   }
@@ -79,6 +99,14 @@ async function handleAdmin(req, res, pathname) {
 
   try {
     switch (pathname) {
+      case '/api/admin/ai-review': {
+        if (!ai.enabled) return sendJson(res, 503, { error: 'AI moderation is not configured.' });
+        const todo = signatures.filter(x => !x.anonymous && !x.hidden && !x.pending && (!x.ai || x.ai.verdict === 'unchecked'));
+        await Promise.all(todo.map(moderate));
+        return sendJson(res, 200, { ok: true, checked: todo.length,
+          hidden: todo.filter(x => x.hidden).map(x => ({ name: x.name, reason: x.autoHidden })),
+          unchecked: todo.filter(x => x.ai && x.ai.verdict === 'unchecked').length });
+      }
       case '/api/admin/sig-hide':
       case '/api/admin/sig-unhide': {
         const rec = signatures.find(s => s.id === body.id);
@@ -99,17 +127,58 @@ async function handleAdmin(req, res, pathname) {
 }
 
 // ── Rate limiting ──────────────────────────────────────────────────────────
-// IPs are hashed with a per-process salt and kept in memory only; nothing
-// identifying a visitor is ever written to disk.
+// Signing: 3 per connection per 24h, persisted so restarts don't reset it.
+// Only a keyed hash of the address (IPv6: its /64) is stored, separate from
+// signatures, and entries are dropped after 24h. Website checks: in memory.
 
 const SALT = crypto.randomBytes(16);
-const hits = new Map();
+const RATE_SALT = process.env.RATE_SALT || (console.warn('RATE_SALT not set; daily limits reset on restart'), crypto.randomBytes(32).toString('hex'));
 const checkHits = new Map();
 const WEBSITE_CHECKS_PER_HOUR = 20;
 
+// Caddy appends the real client address as the last X-Forwarded-For entry;
+// anything before it could have been sent by the client.
 function clientIp(req) {
   const xff = req.headers['x-forwarded-for'];
-  return (xff ? String(xff).split(',')[0].trim() : req.socket.remoteAddress) || 'unknown';
+  const ip = xff ? String(xff).split(',').pop().trim() : req.socket.remoteAddress;
+  return (ip || 'unknown').replace(/%.*$/, '');
+}
+
+function addressPrefix(ip) {
+  ip = ip.replace(/^::ffff:/i, '');
+  if (!ip.includes(':')) return ip;
+  const [head, tail] = ip.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail === undefined ? [] : (tail ? tail.split(':') : []);
+  const full = tail === undefined ? h : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t];
+  return full.slice(0, 4).map(x => x.toLowerCase().padStart(4, '0')).join(':') + '::/64';
+}
+const connectionKey = req => crypto.createHmac('sha256', RATE_SALT).update(addressPrefix(clientIp(req))).digest('base64url').slice(0, 22);
+
+const LIMIT_FILE = path.join(DATA_DIR, 'ratelimit.json');
+let submissions = {};
+try { submissions = JSON.parse(fs.readFileSync(LIMIT_FILE, 'utf8')) || {}; } catch {}
+function pruneSubmissions() {
+  const now = Date.now();
+  for (const [k, times] of Object.entries(submissions)) {
+    const recent = times.filter(t => now - t < DAY_MS);
+    if (recent.length) submissions[k] = recent; else delete submissions[k];
+  }
+}
+pruneSubmissions();
+let limitWrite = Promise.resolve();
+function persistSubmissions() {
+  const snapshot = JSON.stringify(submissions);
+  limitWrite = limitWrite
+    .then(() => fs.promises.writeFile(LIMIT_FILE + '.tmp', snapshot))
+    .then(() => fs.promises.rename(LIMIT_FILE + '.tmp', LIMIT_FILE))
+    .catch(err => console.error('Could not persist rate limits:', err));
+}
+const overDailyLimit = req => (submissions[connectionKey(req)] || []).filter(t => Date.now() - t < DAY_MS).length >= SUBMISSIONS_PER_DAY;
+function recordSubmission(req) {
+  const k = connectionKey(req);
+  submissions[k] = [...(submissions[k] || []).filter(t => Date.now() - t < DAY_MS), Date.now()];
+  persistSubmissions();
 }
 
 function overLimit(map, limit, req) {
@@ -121,12 +190,12 @@ function overLimit(map, limit, req) {
   map.set(key, recent);
   return false;
 }
-const rateLimited = req => overLimit(hits, RATE_LIMIT, req);
 const websiteCheckLimited = req => overLimit(checkHits, WEBSITE_CHECKS_PER_HOUR, req);
 
 setInterval(() => {
   const now = Date.now();
-  for (const map of [hits, checkHits]) {
+  pruneSubmissions();
+  for (const map of [checkHits]) {
     for (const [key, times] of map) {
       const recent = times.filter(t => now - t < RATE_WINDOW_MS);
       if (recent.length) map.set(key, recent); else map.delete(key);
@@ -270,7 +339,7 @@ function publicSignatures() {
   let anonymous = 0;
   for (let i = signatures.length - 1; i >= 0; i--) {
     const s = signatures[i];
-    if (s.hidden) continue; // removed by a moderator
+    if (s.hidden || s.pending) continue; // removed by a moderator, or awaiting AI moderation
     if (s.anonymous) anonymous++;
     else named.push({ name: s.name, website: s.website || '', at: s.at });
   }
@@ -319,13 +388,16 @@ async function handleSign(req, res) {
     if (blocked) { record.hidden = true; record.autoHidden = blocked; }
   }
 
-  if (rateLimited(req)) {
+  if (overDailyLimit(req)) {
     return sendJson(res, 429, { code: 'rate_limited', error: 'Too many signatures from your connection. Please try again later.' });
   }
 
+  if (!anonymous && !record.hidden && ai.enabled) record.pending = true;
   signatures.push(record);
+  recordSubmission(req);
   await persist();
-  sendJson(res, 201, { ok: true, count: signatures.filter(s => !s.hidden).length });
+  sendJson(res, 201, { ok: true, pending: !!record.pending, count: signatures.filter(s => !s.hidden && !s.pending).length });
+  if (record.pending) moderate(record);
 }
 
 // ── Static files ───────────────────────────────────────────────────────────
@@ -390,6 +462,9 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, HOST, () => {
   stream.start();
+  // Resume moderation interrupted by a restart.
+  for (const rec of signatures) if (rec.pending) moderate(rec);
+  if (!ai.enabled) console.warn('OPENROUTER_API_KEY not set: AI moderation is off');
   console.log(`openletterhk.org listening on http://${HOST}:${PORT} — ${signatures.length} signatures loaded`);
 });
 

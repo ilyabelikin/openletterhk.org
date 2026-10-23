@@ -71,7 +71,7 @@
     "count_template": "Signed by {{total}} — {{named}} with their names, {{anonymous}} anonymously."
   },
   "footer": {
-    "privacy": "{{Privacy.}} This page sets no cookies, loads nothing from third parties, and runs no analytics. We store only what you type into the form. Anonymous signatures are counted and nothing else is kept. Posts in the #openletterhk stream are fetched by our server from Bluesky and X; your browser never contacts them.",
+    "privacy": "{{Privacy.}} This page sets no cookies, loads nothing from third parties, and runs no analytics. We store only what you type into the form. Anonymous signatures are counted and nothing else is kept. To stop repeat submissions, we keep a keyed hash of your connection’s address for 24 hours, never linked to your signature. Named signatures are checked for trolling by an AI model (GLM, via OpenRouter, with providers that don’t retain data) before they appear. Posts in the #openletterhk stream are fetched by our server from Bluesky and X; your browser never contacts them.",
     "license": "Letter text © its author, licensed {{CC BY 4.0}} — share it freely. Site source on {{GitHub}}.",
     "made": "Made with love in Hong Kong using {{Claude Code}} and Fable 5.1 High."
   },

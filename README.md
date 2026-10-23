@@ -30,7 +30,7 @@ Pulls `main` on the server and reloads the PM2 process `openletterhk` (port 3010
 
 ## Privacy
 
-Only what is typed into the form is stored. Anonymous signatures store a timestamp and nothing else. IP addresses are used in memory for rate limiting (hashed with a per-process salt) and are never written to disk.
+Only what is typed into the form is stored with the signature. Anonymous signatures store a timestamp and nothing else. Signing is limited to 3 per connection per 24 hours: a keyed hash (HMAC with `RATE_SALT` from `.env`) of the address — IPv6 by /64 — is kept in `data/ratelimit.json`, separate from signatures, and dropped after 24 hours. Named signatures are checked by an AI model (`z-ai/glm-5.3-flash` via OpenRouter, providers with `data_collection: deny`) before they appear; see `ai-moderation.js`.
 
 ## Licence
 

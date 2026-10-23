@@ -152,6 +152,8 @@
         nameInput.value = '';
         websiteInput.value = '';
         await loadSignatures();
+        // Named signatures appear after a short automated check; refresh a few times.
+        if (data.pending) [6000, 15000, 30000].forEach(ms => setTimeout(loadSignatures, ms));
       } else {
         setStatus((data.code && T[data.code]) || data.error || T.error, 'err');
       }

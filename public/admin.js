@@ -91,7 +91,8 @@
       const li = el('li', 'admin-item' + (s.hidden ? ' is-hidden' : ''));
       const head = el('div', 'admin-head');
       head.appendChild(el('span', 'admin-badge ' + (s.hidden ? 'badge-hidden' : s.flagged ? 'badge-filtered' : 'badge-visible'),
-        s.hidden ? (s.autoHidden ? 'hidden automatically · ' + s.autoHidden : 'hidden') : s.flagged ? 'visible · looks like: ' + s.flagged : 'visible'));
+        s.pending ? 'pending AI check' : s.hidden ? (s.autoHidden ? 'hidden automatically · ' + s.autoHidden : 'hidden') : s.flagged ? 'visible · looks like: ' + s.flagged : 'visible'));
+      if (s.ai && !s.pending) head.appendChild(el('span', 'admin-src', s.ai.verdict === 'unchecked' ? 'AI: not checked (' + (s.ai.error || 'error').slice(0, 40) + ')' : 'AI: ' + s.ai.verdict + (s.ai.reason ? ' — ' + s.ai.reason : '')));
       head.appendChild(el('span', 'admin-author', s.name));
       if (s.website) head.appendChild(el('span', 'admin-src', s.website.replace(/^https?:\/\//, '').replace(/\/$/, '')));
       head.appendChild(el('time', 'admin-date', new Date(s.at).toLocaleString()));
@@ -129,6 +130,18 @@
   }
 
   keyForm.addEventListener('submit', e => { e.preventDefault(); key = keyInput.value.trim(); load(); });
+
+  const aiBtn = document.getElementById('ai-review-btn');
+  if (aiBtn) aiBtn.addEventListener('click', async () => {
+    aiBtn.disabled = true;
+    say('Asking the AI to review unchecked signatures… this can take a minute.');
+    try {
+      const r = await api('/api/admin/ai-review', {});
+      say('Reviewed ' + r.checked + '. Hidden: ' + (r.hidden.length ? r.hidden.map(h => h.name).join(', ') : 'none') + (r.unchecked ? '. Could not check ' + r.unchecked + '.' : '.'), 'ok');
+      await load();
+    } catch (err) { say(err.message, 'err'); }
+    finally { aiBtn.disabled = false; }
+  });
 
   if (xForm) xForm.addEventListener('submit', async e => {
     e.preventDefault();
