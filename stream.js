@@ -198,7 +198,9 @@ function createStream(dataDir) {
   // ── Views ───────────────────────────────────────────────────
 
   function xAsPost(p) {
-    return { id: 'x:' + p.url, source: 'x', name: p.name, handle: p.handle, url: p.url, text: p.text, at: p.at || p.addedAt,
+    // oEmbed only gives a calendar date; pin to midday UTC so the day reads the same in every timezone.
+    const at = p.at ? p.at.slice(0, 10) + 'T12:00:00.000Z' : p.addedAt;
+    return { id: 'x:' + p.url, source: 'x', name: p.name, handle: p.handle, url: p.url, text: p.text, at, precision: p.at ? 'day' : 'time',
              filteredReason: p.error ? 'could not load from X' : (!p.text ? 'empty' : null) };
   }
 
@@ -220,7 +222,7 @@ function createStream(dataDir) {
       const n = (perAuthor.get(k) || 0) + 1;
       perAuthor.set(k, n);
       if (n > MAX_PER_AUTHOR) continue;
-      out.push({ id: p.id, source: p.source, name: p.name, handle: p.handle, url: p.url, text: p.text, at: p.at });
+      out.push({ id: p.id, source: p.source, name: p.name, handle: p.handle, url: p.url, text: p.text, at: p.at, precision: p.precision || 'time' });
       if (out.length >= MAX_VISIBLE) break;
     }
     return out;

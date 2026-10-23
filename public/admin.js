@@ -9,7 +9,6 @@
   const list = document.getElementById('post-list');
   const xForm = document.getElementById('x-form');
   const xUrl = document.getElementById('x-url');
-  const refreshBtn = document.getElementById('refresh-btn');
 
   let key = '';
   try { key = sessionStorage.getItem('olhk-admin-key') || ''; } catch {}
@@ -41,7 +40,7 @@
   function render(data) {
     const s = data.status;
     feed.textContent =
-      'Tag #' + s.tag + ' · Bluesky last checked ' + (s.lastBlueskyOk ? new Date(s.lastBlueskyOk).toLocaleString() : 'never') +
+      'Tag #' + s.tag + ' · Bluesky is checked automatically every 2 minutes, last at ' + (s.lastBlueskyOk ? new Date(s.lastBlueskyOk).toLocaleString() : 'never') +
       (s.lastBlueskyError ? ' · last error: ' + s.lastBlueskyError : '') +
       ' · filters: account ≥ ' + s.filters.minAccountAgeDays + ' days, ≥ ' + s.filters.minFollowers + ' followers, ' + s.blockedWords + ' blocked words';
 
@@ -57,7 +56,7 @@
       head.appendChild(el('span', 'admin-badge badge-' + state, state === 'filtered' ? 'filtered: ' + p.filteredReason : state));
       head.appendChild(el('span', 'admin-src', p.source === 'x' ? 'X' : 'Bluesky'));
       head.appendChild(el('span', 'admin-author', (p.name || '') + ' ' + (p.handle || '')));
-      head.appendChild(el('time', 'admin-date', p.at ? new Date(p.at).toLocaleString() : ''));
+      head.appendChild(el('time', 'admin-date', !p.at ? '' : p.precision === 'day' ? new Date(p.at).toLocaleDateString() : new Date(p.at).toLocaleString()));
       li.appendChild(head);
 
       li.appendChild(el('p', 'admin-text', p.text || '(no text)'));
@@ -111,14 +110,6 @@
     say('Fetching the post from X…');
     try { await api('/api/admin/x-add', { url }); xUrl.value = ''; say('Added to the stream.', 'ok'); await load(); }
     catch (err) { say(err.message, 'err'); }
-  });
-
-  refreshBtn.addEventListener('click', async () => {
-    refreshBtn.disabled = true;
-    say('Checking Bluesky…');
-    try { await api('/api/admin/refresh', {}); say('Bluesky checked.', 'ok'); await load(); }
-    catch (err) { say(err.message, 'err'); }
-    finally { refreshBtn.disabled = false; }
   });
 
   if (key) load();

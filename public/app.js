@@ -271,7 +271,7 @@
     meta.appendChild(sourceIcon(post.source));
     const name = document.createElement('span'); name.className = 'post-name'; name.textContent = post.name; meta.appendChild(name);
     const handle = document.createElement('span'); handle.className = 'post-handle'; handle.textContent = post.handle; meta.appendChild(handle);
-    const date = document.createElement('time'); date.className = 'post-date'; date.dateTime = post.at || ''; date.textContent = shortDate(post.at); meta.appendChild(date);
+    const date = document.createElement('time'); date.className = 'post-date'; date.dateTime = post.at || ''; date.textContent = post.precision === 'day' ? new Date(post.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : shortDate(post.at); meta.appendChild(date);
     a.appendChild(meta);
 
     li.appendChild(a);

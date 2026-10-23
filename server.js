@@ -74,7 +74,6 @@ async function handleAdmin(req, res, pathname) {
       case '/api/admin/unhide':   stream.setHidden(body.id, false); return sendJson(res, 200, { ok: true });
       case '/api/admin/x-add':    return sendJson(res, 201, { ok: true, post: await stream.addX(body.url) });
       case '/api/admin/x-remove': stream.removeX(body.url); return sendJson(res, 200, { ok: true });
-      case '/api/admin/refresh':  await stream.pollBluesky(); return sendJson(res, 200, { ok: true, status: stream.status() });
       default:                    return sendJson(res, 404, { error: 'Not found' });
     }
   } catch (err) {
