@@ -445,3 +445,5 @@ button.secondary { color: var(--ink); background: var(--bg-raised); border: 1px 
 .admin-actions a { color: var(--ink-soft); }
 .admin-actions button { min-height: 36px; padding: .4rem .9rem; font-size: .875rem; }
 .admin-empty { color: var(--ink-soft); }
+.admin-quick { gap: 1.25rem; font-size: .9375rem; }
+.admin-quick a { color: var(--ink); font-weight: 600; }
