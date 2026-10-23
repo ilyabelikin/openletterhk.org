@@ -38,4 +38,4 @@ Letter text © its author, [CC BY 4.0](https://creativecommons.org/licenses/by/4
 
 ## Social card
 
-`public/og.png` (2400×1260) is rendered from `og/card.html`. Edit the HTML, then run `./og/render.sh` (needs Google Chrome).
+`public/og.png` (2400×1260, link previews) and `public/share-instagram.png` (1080×1350, Instagram feed) are rendered from `og/card.html` and `og/card-portrait.html`. Edit the HTML, then run `./og/render.sh` (needs Google Chrome).

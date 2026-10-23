@@ -299,3 +299,42 @@ button:disabled { opacity: .6; cursor: progress; }
   font-size: .9375rem;
   color: var(--ink-soft);
 }
+
+/* ── Share ────────────────────────────────────────────────────── */
+
+.share {
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  padding-top: clamp(2rem, 5vw, 3rem);
+  border-top: 1px solid var(--rule);
+}
+.share-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+}
+.share-list li[hidden] { display: none; }
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 44px;
+  padding: .55rem .95rem;
+  font: inherit;
+  font-size: .9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.share-btn:hover { border-color: var(--ink-faint); filter: none; }
+.share-btn-primary { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.share-btn-primary:hover { filter: brightness(1.08); border-color: var(--accent); }
+.ico { width: 1.15rem; height: 1.15rem; flex: none; fill: currentColor; }
+.ico-line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#share-status { margin-top: .9rem; }

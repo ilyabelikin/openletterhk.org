@@ -124,7 +124,7 @@
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        setStatus('Thank you — your signature has been added.', 'ok');
+        setStatus('Thank you — your signature has been added. Now help it travel: share the letter below.', 'ok');
         nameInput.value = '';
         websiteInput.value = '';
         await loadSignatures();
@@ -136,6 +136,75 @@
     } finally {
       submitBtn.disabled = false;
     }
+  });
+
+  // ── Share ────────────────────────────────────────────────────
+
+  const shareList = document.querySelector('.share-list');
+  const shareStatus = document.getElementById('share-status');
+  const SHARE_URL = shareList.dataset.shareUrl;
+  const SHARE_TEXT = shareList.dataset.shareText;
+  const SHARE_TITLE = shareList.dataset.shareTitle;
+
+  function setShareStatus(text, kind) {
+    shareStatus.textContent = text;
+    shareStatus.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  if (navigator.share) {
+    document.querySelector('.native-only').hidden = false;
+    document.getElementById('share-native').addEventListener('click', async () => {
+      try { await navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url: SHARE_URL }); }
+      catch (err) { if (err.name !== 'AbortError') setShareStatus('Sharing is not available here — try Copy link.', 'err'); }
+    });
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.className = 'hp';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    if (!ok) throw new Error('copy failed');
+  }
+
+  document.getElementById('share-copy').addEventListener('click', async () => {
+    try {
+      await copyText(SHARE_URL);
+      setShareStatus('Link copied — paste it anywhere.', 'ok');
+    } catch {
+      setShareStatus('Could not copy automatically. The link is ' + SHARE_URL, 'err');
+    }
+  });
+
+  // Instagram has no link sharing, so share the portrait card as an image.
+  document.getElementById('share-instagram').addEventListener('click', async () => {
+    const IMG = '/share-instagram.png';
+    try {
+      const blob = await (await fetch(IMG)).blob();
+      const file = new File([blob], 'openletterhk.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], text: SHARE_TEXT + ' ' + SHARE_URL });
+        setShareStatus('Pick Instagram in the share sheet. Put openletterhk.org in your caption or a link sticker.', 'ok');
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+    const a = document.createElement('a');
+    a.href = IMG;
+    a.download = 'openletterhk-instagram.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setShareStatus('Image downloaded. Post it on Instagram and put openletterhk.org in your caption or bio.', 'ok');
   });
 
   loadSignatures();
