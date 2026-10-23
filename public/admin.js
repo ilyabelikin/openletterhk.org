@@ -85,6 +85,14 @@
     const visible = data.named.filter(s => !s.hidden).length;
     const hidden = data.named.length - visible + data.anonymousHidden;
     sigSummary.textContent = visible + ' named + ' + data.anonymous + ' anonymous visible' + (hidden ? ' · ' + hidden + ' hidden' : '') + '.';
+    // The review button is only for signatures the AI could not check (e.g. OpenRouter was down);
+    // new signatures are checked automatically, so normally it stays hidden.
+    const aiBtnEl = document.getElementById('ai-review-btn');
+    if (aiBtnEl) {
+      const unchecked = data.named.filter(x => !x.hidden && !x.pending && (!x.ai || x.ai.verdict === 'unchecked')).length;
+      aiBtnEl.parentElement.hidden = unchecked === 0;
+      aiBtnEl.textContent = 'Review ' + unchecked + ' unchecked signature' + (unchecked === 1 ? '' : 's') + ' with AI';
+    }
     sigList.replaceChildren();
     if (!data.named.length) { sigList.appendChild(el('li', 'admin-empty', 'No named signatures yet.')); return; }
     for (const s of data.named) {
@@ -92,7 +100,8 @@
       const head = el('div', 'admin-head');
       head.appendChild(el('span', 'admin-badge ' + (s.hidden ? 'badge-hidden' : s.flagged ? 'badge-filtered' : 'badge-visible'),
         s.pending ? 'pending AI check' : s.hidden ? (s.autoHidden ? 'hidden automatically · ' + s.autoHidden : 'hidden') : s.flagged ? 'visible · looks like: ' + s.flagged : 'visible'));
-      if (s.ai && !s.pending) head.appendChild(el('span', 'admin-src', s.ai.verdict === 'unchecked' ? 'AI: not checked (' + (s.ai.error || 'error').slice(0, 40) + ')' : 'AI: ' + s.ai.verdict + (s.ai.reason ? ' — ' + s.ai.reason : '')));
+      const aiAlreadyShown = s.autoHidden && s.autoHidden.startsWith('AI moderation');
+      if (s.ai && !s.pending && !aiAlreadyShown) head.appendChild(el('span', 'admin-src', s.ai.verdict === 'unchecked' ? 'AI: not checked (' + (s.ai.error || 'error').slice(0, 40) + ')' : 'AI: ' + s.ai.verdict + (s.ai.reason ? ' — ' + s.ai.reason : '')));
       head.appendChild(el('span', 'admin-author', s.name));
       if (s.website) head.appendChild(el('span', 'admin-src', s.website.replace(/^https?:\/\//, '').replace(/\/$/, '')));
       head.appendChild(el('time', 'admin-date', new Date(s.at).toLocaleString()));
