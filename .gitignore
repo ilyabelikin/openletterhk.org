@@ -1,0 +1,5 @@
+# signatures live on the server only — never in the repo
+/data/
+node_modules/
+.DS_Store
+*.log

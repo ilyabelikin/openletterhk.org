@@ -1,0 +1,13 @@
+{
+  "name": "openletterhk.org",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An Open Letter to Anthropic from Hong Kong — static page with a signature form. No dependencies.",
+  "type": "commonjs",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "PORT=3010 node server.js"
+  },
+  "license": "CC-BY-4.0"
+}
