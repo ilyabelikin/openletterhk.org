@@ -216,11 +216,22 @@ function serveStatic(req, res, pathname) {
   fs.stat(file, (err, stat) => {
     if (err || !stat.isFile()) { res.writeHead(404, baseHeaders({ 'Content-Type': 'text/plain' })); return res.end('Not found'); }
     const ext = path.extname(file).toLowerCase();
-    res.writeHead(200, baseHeaders({
+    // Revalidate on every load (cheap 304s) so a deploy is visible immediately —
+    // never a stale stylesheet, or a stale script talking to a changed API.
+    const etag = `W/"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
+    const cacheHeaders = {
+      'Cache-Control': 'no-cache',
+      'ETag': etag,
+      'Last-Modified': stat.mtime.toUTCString(),
+    };
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, baseHeaders(cacheHeaders));
+      return res.end();
+    }
+    res.writeHead(200, baseHeaders(Object.assign({
       'Content-Type': MIME[ext] || 'application/octet-stream',
       'Content-Length': stat.size,
-      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600',
-    }));
+    }, cacheHeaders)));
     if (req.method === 'HEAD') return res.end();
     fs.createReadStream(file).pipe(res);
   });
