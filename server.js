@@ -403,7 +403,7 @@ async function handleSign(req, res) {
 // ── Static files ───────────────────────────────────────────────────────────
 
 function serveStatic(req, res, pathname) {
-  const ROUTES = { '/': '/index.html', '/admin': '/admin.html', '/admin/signatures': '/admin-signatures.html', '/yue': '/yue/index.html', '/yue/': '/yue/index.html', '/zh-hk': '/zh-hk/index.html', '/zh-hk/': '/zh-hk/index.html' };
+  const ROUTES = { '/': '/index.html', '/admin': '/admin.html', '/admin/signatures': '/admin-signatures.html', '/zh-hk': '/zh-hk/index.html', '/zh-hk/': '/zh-hk/index.html' };
   const rel = ROUTES[pathname] || decodeURIComponent(pathname);
   const file = path.normalize(path.join(PUBLIC_DIR, rel));
   if (!file.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(404, baseHeaders()); return res.end('Not found'); }
@@ -438,6 +438,8 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
 
   if (url.pathname === '/healthz') return sendJson(res, 200, { ok: true });
+  // The colloquial Cantonese page was retired; keep old shared links working.
+  if (url.pathname === '/yue' || url.pathname === '/yue/') { res.writeHead(301, baseHeaders({ Location: '/zh-hk' })); return res.end(); }
 
   if (url.pathname === '/api/signatures') {
     if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });

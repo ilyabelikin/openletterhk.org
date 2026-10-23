@@ -14,7 +14,7 @@ render() { # html out width height scale
 }
 render card.html          og.png              1200 630  2
 render card-portrait.html share-instagram.png 1080 1350 1
-for code in yue zh-hk; do
+for code in zh-hk; do
   render card-$code.html          og-$code.png              1200 630  2
   render card-portrait-$code.html share-instagram-$code.png 1080 1350 1
 done

@@ -11,11 +11,11 @@ const BASE = 'https://openletterhk.org/';
 const TAG = '#openletterhk';
 
 // lang: the page's language (drives fonts and screen-reader voice);
-// hreflang: what search engines are told. /yue is read aloud in Cantonese (zh-HK)
-// but advertised as yue-Hant-HK, leaving zh-HK to the formal written version.
+// hreflang: what search engines are told.
+// (A colloquial Cantonese /yue page existed until 2026-10-24; native readers found it
+// misleading, so it was removed and /yue now redirects to /zh-hk.)
 export const LOCALES = [
   { code: 'zh-hk', file: 'i18n/zh.json',  lang: 'zh-Hant-HK', hreflang: 'zh-HK',       label: '中文',   locale: 'zh_HK' },
-  { code: 'yue',   file: 'i18n/yue.json', lang: 'zh-HK',      hreflang: 'yue-Hant-HK', label: '廣東話', locale: 'zh_HK' },
 ];
 const EN = { code: '', lang: 'en', hreflang: 'en', label: 'English' };
 const pageUrl = l => l.code ? BASE + l.code : BASE;

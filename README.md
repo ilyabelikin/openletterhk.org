@@ -59,9 +59,9 @@ ssh root@5.223.89.26 "grep ADMIN_KEY /var/www/openletterhk.org/.env"
 
 Tuning via `.env`: `STREAM_MIN_AGE_DAYS`, `STREAM_MIN_FOLLOWERS`, `STREAM_TAG`.
 
-## Translations (`/zh-hk`, `/yue`)
+## Translation (`/zh-hk`)
 
-`public/zh-hk/index.html` (formal written Chinese, 書面語) and `public/yue/index.html` (written Cantonese, 粵語白話文) are **generated** — edit `public/index.html` and/or `i18n/zh.json` / `i18n/yue.json`, then rebuild:
+`public/zh-hk/index.html` (formal written Chinese, 書面語) is **generated** — edit `public/index.html` and/or `i18n/zh.json`, then rebuild:
 
 ```bash
 node i18n/build.mjs && ./og/render.sh
@@ -69,6 +69,6 @@ node i18n/build.mjs && ./og/render.sh
 
 - `i18n/en.json` — English source strings (letter + UI), with `{{…}}` placeholders for links.
 - `i18n/zh.json` — formal written Chinese, HK Traditional; proofread by native speakers.
-- `i18n/yue.json` — written Cantonese (粵語白話文, HK Traditional). Drafted with `qwen/qwen3.8-max-prime` via OpenRouter (`i18n/translate.mjs`, runs on the server with the key from `.env`), then human-reviewed. The build fails if any expected string doesn't match, so a changed English line can't silently leave stale Cantonese.
-- Locales are listed in `LOCALES` in `i18n/build.mjs`; the build also keeps the language switch and hreflang list in `public/index.html` in sync.
+- A colloquial Cantonese version (`/yue`) was removed on 2026-10-24 after native readers found it misleading; `/yue` redirects to `/zh-hk`. It remains in git history.
+- Locales are listed in `LOCALES` in `i18n/build.mjs` (`i18n/translate.mjs` is the Qwen drafting pipeline used for the retired Cantonese draft); the build also keeps the language switch and hreflang list in `public/index.html` in sync.
 - UI messages reach `app.js` through a `<script type="application/json" id="i18n">` data block.
