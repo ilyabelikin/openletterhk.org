@@ -9,7 +9,7 @@ Live at <https://openletterhk.org>.
 - `server.js` — a dependency-free Node server. Serves `public/` and exposes:
   - `GET /api/signatures` — count plus the list of named signatories (anonymous ones are counted only).
   - `POST /api/sign` — adds a signature. Validates input, rejects links in the name field, normalises websites, rate-limits by connection, and ignores honeypot submissions.
-- `public/` — the page. No web fonts, no third-party requests, no cookies, no analytics.
+- `public/` — the page. The script face (Dancing Script, SIL OFL, licence in `public/fonts/OFL.txt`) is self-hosted; no third-party requests, no cookies, no analytics.
 - `data/signatures.json` — the signatures. Gitignored; it only ever exists on the server. Writes are atomic.
 
 ## Run locally
