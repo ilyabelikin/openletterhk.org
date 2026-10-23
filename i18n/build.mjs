@@ -87,7 +87,7 @@ function build(loc, en, tr, source) {
   swapBlock('language switch', '<p class="lang-switch">', '</p>', `<p class="lang-switch">${langSwitch(loc)}</p>`);
   swap('kicker', `<p class="kicker">${esc(en.page.kicker)}</p>`, `<p class="kicker">${esc(tr.page.kicker)}</p>`);
   swap('h1', `<h1>${h1Html(en.page)}</h1>`, `<h1>${h1Html(tr.page)}</h1>`);
-  swap('dateline', `<p class="dateline">${esc(en.page.dateline)}</p>`, `<p class="dateline">${esc(tr.page.dateline)}</p>`);
+  swap('dateline', `<p class="dateline"><time datetime="2026-10-23">${esc(en.page.dateline)}</time></p>`, `<p class="dateline"><time datetime="2026-10-23">${esc(tr.page.dateline)}</time></p>`);
 
   // ── letter (rebuilt from the translation)
   const p = s => `      <p>${rich(s)}</p>`;
