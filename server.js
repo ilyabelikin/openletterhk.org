@@ -249,7 +249,8 @@ async function handleSign(req, res) {
 // ── Static files ───────────────────────────────────────────────────────────
 
 function serveStatic(req, res, pathname) {
-  const rel = pathname === '/' ? '/index.html' : pathname === '/admin' ? '/admin.html' : decodeURIComponent(pathname);
+  const ROUTES = { '/': '/index.html', '/admin': '/admin.html', '/yue': '/yue/index.html', '/yue/': '/yue/index.html' };
+  const rel = ROUTES[pathname] || decodeURIComponent(pathname);
   const file = path.normalize(path.join(PUBLIC_DIR, rel));
   if (!file.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(404, baseHeaders()); return res.end('Not found'); }
 

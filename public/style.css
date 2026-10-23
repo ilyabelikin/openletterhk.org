@@ -356,7 +356,12 @@ body { overflow-x: clip; }
 .ticker {
   width: 100vw;
   margin-left: calc(50% - 50vw);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+  touch-action: pan-x pan-y;
   padding: .25rem 0 .75rem;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
@@ -367,13 +372,12 @@ body { overflow-x: clip; }
   padding: 0;
   display: flex;
   width: max-content;
-  animation: ticker var(--ticker-duration, 60s) linear infinite;
 }
-.ticker:hover .ticker-track,
-.ticker:focus-within .ticker-track { animation-play-state: paused; }
-@keyframes ticker { to { transform: translateX(-50%); } }
+.ticker::-webkit-scrollbar { display: none; }
+.ticker.is-dragging { cursor: grabbing; user-select: none; }
+.ticker.is-dragging a { pointer-events: none; }
 
-/* Margin, not gap, so the duplicated half lines up exactly at -50%. */
+/* Margin, not gap, so the duplicated half is exactly half the scroll width. */
 .ticker-track li { margin-right: 1rem; }
 
 .post-card {
@@ -419,8 +423,7 @@ body { overflow-x: clip; }
 .stream-empty { margin: 0; color: var(--ink-soft); }
 
 @media (prefers-reduced-motion: reduce) {
-  .ticker { overflow-x: auto; }
-  .ticker-track { animation: none; padding: 0 16px; }
+  .ticker-track { padding: 0 16px; }
 }
 
 /* ── Admin ────────────────────────────────────────────────────── */
@@ -449,3 +452,18 @@ button.secondary { color: var(--ink); background: var(--bg-raised); border: 1px 
 .admin-empty { color: var(--ink-soft); }
 .admin-quick { gap: 1.25rem; font-size: .9375rem; }
 .admin-quick a { color: var(--ink); font-weight: 600; }
+
+/* ── Language switch + Cantonese typography ───────────────────── */
+
+.masthead { position: relative; }
+.lang-switch { position: absolute; top: 0; right: 0; margin: 0; font-size: .9375rem; }
+.lang-switch a { color: var(--ink-soft); font-weight: 600; text-decoration: none; padding: .5rem .25rem; }
+.lang-switch a:hover { color: var(--accent); }
+
+:lang(zh) {
+  --serif: "Songti TC", "Noto Serif TC", "Noto Serif HK", "Source Han Serif TC", "PMingLiU", "MingLiU", serif;
+  --sans: "PingFang HK", "PingFang TC", "Noto Sans HK", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+:lang(zh) h1 { letter-spacing: 0; line-height: 1.2; }
+:lang(zh) .letter { line-height: 1.9; }
+:lang(zh) .kicker { letter-spacing: .2em; }

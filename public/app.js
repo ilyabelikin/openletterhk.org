@@ -1,6 +1,27 @@
 'use strict';
 
 (function () {
+  // UI strings. English defaults; a translated page overrides them with a
+  // <script type="application/json" id="i18n"> block (data, not executed).
+  const T = Object.assign({
+    need_name: 'Please enter your name, or choose to sign anonymously.',
+    adding: 'Adding your signature…',
+    thanks: 'Thank you — your signature has been added. Now help it travel: share the letter below.',
+    error: 'Something went wrong. Please try again.',
+    network: 'Network error. Please check your connection and try again.',
+    first: 'Be the first to sign.',
+    load_failed: 'Signatures could not be loaded right now.',
+    count: null, // translated pages supply a template; English builds its own sentence
+    copied: 'Link copied — paste it anywhere.',
+    copy_failed: 'Could not copy automatically. The link is',
+    native_failed: 'Sharing is not available here — try Copy link.',
+    instagram_sheet: 'Pick Instagram in the share sheet. Put openletterhk.org in your caption or a link sticker.',
+    instagram_download: 'Image downloaded. Post it on Instagram and put openletterhk.org in your caption or bio.',
+  }, (() => {
+    const el = document.getElementById('i18n');
+    try { return el ? JSON.parse(el.textContent) : {}; } catch { return {}; }
+  })());
+  const fill = (tpl, vars) => tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
   const form = document.getElementById('sign-form');
   const namedFields = document.getElementById('named-fields');
   const nameInput = document.getElementById('name');
@@ -48,7 +69,9 @@
 
   function render(data) {
     if (data.count === 0) {
-      countEl.textContent = 'Be the first to sign.';
+      countEl.textContent = T.first;
+    } else if (T.count) {
+      countEl.textContent = fill(T.count, { total: data.count, named: data.named.length, anonymous: data.anonymous });
     } else {
       let text = 'Signed by ' + plural(data.count, 'person').replace('persons', 'people');
       const parts = [];
@@ -90,7 +113,7 @@
       if (!res.ok) throw new Error(res.status);
       render(await res.json());
     } catch {
-      countEl.textContent = 'Signatures could not be loaded right now.';
+      countEl.textContent = T.load_failed;
     }
   }
 
@@ -101,7 +124,7 @@
     const anonymous = isAnonymous();
 
     if (!anonymous && !nameInput.value.trim()) {
-      setStatus('Please enter your name, or choose to sign anonymously.', 'err');
+      setStatus(T.need_name, 'err');
       nameInput.focus();
       return;
     }
@@ -113,7 +136,7 @@
     }
 
     submitBtn.disabled = true;
-    setStatus('Adding your signature…');
+    setStatus(T.adding);
 
     try {
       const res = await fetch('/api/sign', {
@@ -124,15 +147,15 @@
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        setStatus('Thank you — your signature has been added. Now help it travel: share the letter below.', 'ok');
+        setStatus(T.thanks, 'ok');
         nameInput.value = '';
         websiteInput.value = '';
         await loadSignatures();
       } else {
-        setStatus(data.error || 'Something went wrong. Please try again.', 'err');
+        setStatus(data.error || T.error, 'err');
       }
     } catch {
-      setStatus('Network error. Please check your connection and try again.', 'err');
+      setStatus(T.network, 'err');
     } finally {
       submitBtn.disabled = false;
     }
@@ -155,7 +178,7 @@
     document.querySelector('.native-only').hidden = false;
     document.getElementById('share-native').addEventListener('click', async () => {
       try { await navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url: SHARE_URL }); }
-      catch (err) { if (err.name !== 'AbortError') setShareStatus('Sharing is not available here — try Copy link.', 'err'); }
+      catch (err) { if (err.name !== 'AbortError') setShareStatus(T.native_failed, 'err'); }
     });
   }
 
@@ -178,21 +201,21 @@
   document.getElementById('share-copy').addEventListener('click', async () => {
     try {
       await copyText(SHARE_URL);
-      setShareStatus('Link copied — paste it anywhere.', 'ok');
+      setShareStatus(T.copied, 'ok');
     } catch {
-      setShareStatus('Could not copy automatically. The link is ' + SHARE_URL, 'err');
+      setShareStatus(T.copy_failed + ' ' + SHARE_URL, 'err');
     }
   });
 
   // Instagram has no link sharing, so share the portrait card as an image.
   document.getElementById('share-instagram').addEventListener('click', async () => {
-    const IMG = '/share-instagram.png';
+    const IMG = shareList.dataset.instagramImage || '/share-instagram.png';
     try {
       const blob = await (await fetch(IMG)).blob();
       const file = new File([blob], 'openletterhk.png', { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], text: SHARE_TEXT + ' ' + SHARE_URL });
-        setShareStatus('Pick Instagram in the share sheet. Put openletterhk.org in your caption or a link sticker.', 'ok');
+        setShareStatus(T.instagram_sheet, 'ok');
         return;
       }
     } catch (err) {
@@ -204,7 +227,7 @@
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setShareStatus('Image downloaded. Post it on Instagram and put openletterhk.org in your caption or bio.', 'ok');
+    setShareStatus(T.instagram_download, 'ok');
   });
 
   // ── #openletterhk stream ─────────────────────────────────────
@@ -280,13 +303,14 @@
 
   function renderStream(posts) {
     streamSection.hidden = false;
+    looping = false;
     track.replaceChildren();
     if (!posts.length) { ticker.hidden = true; streamEmpty.hidden = false; return; }
     streamEmpty.hidden = true;
     ticker.hidden = false;
 
     posts.forEach(p => track.appendChild(card(p, false)));
-    if (reduceMotion.matches) { track.style.removeProperty('--ticker-duration'); return; }
+    if (reduceMotion.matches) { looping = false; return; }
 
     // Repeat the set until it is wider than the screen, then duplicate it once:
     // translating the track by -50% then loops without a visible seam.
@@ -303,8 +327,75 @@
       if (link) link.tabIndex = -1;
       track.appendChild(copy);
     });
-    ticker.style.setProperty('--ticker-duration', Math.round(setWidth / PX_PER_SECOND) + 's');
+    ticker.scrollLeft = 1;
+    looping = true;
   }
+
+  // Auto-drift by moving scrollLeft (not a CSS animation) so people can also
+  // scroll the row themselves. The track holds two identical halves; crossing
+  // either end jumps by one half, which looks seamless.
+  let looping = false;
+  let paused = false;
+  let pos = 0;
+  let lastTs = 0;
+  let resumeTimer = null;
+  const half = () => track.scrollWidth / 2;
+
+  function wrap() {
+    const h = half();
+    if (!looping || h <= 0) return;
+    // Non-overlapping thresholds: a jump in one direction never re-triggers the other.
+    if (ticker.scrollLeft >= h + 1) ticker.scrollLeft -= h;
+    else if (ticker.scrollLeft < 1) ticker.scrollLeft += h;
+  }
+  ticker.addEventListener('scroll', wrap, { passive: true });
+
+  function tick(ts) {
+    const dt = lastTs ? Math.min(ts - lastTs, 100) : 0;
+    lastTs = ts;
+    if (looping && !paused && !reduceMotion.matches && !ticker.hidden) {
+      pos += (PX_PER_SECOND * dt) / 1000;
+      const h = half();
+      if (pos >= h + 1) pos -= h;
+      if (pos < 1) pos += h;
+      ticker.scrollLeft = pos;
+    } else {
+      pos = ticker.scrollLeft; // pick up where the person left it
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  const pause = () => { paused = true; clearTimeout(resumeTimer); };
+  const resumeSoon = ms => { clearTimeout(resumeTimer); resumeTimer = setTimeout(() => { paused = false; }, ms); };
+  ticker.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') pause(); });
+  ticker.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !dragging) resumeSoon(400); });
+  ticker.addEventListener('focusin', pause);
+  ticker.addEventListener('focusout', () => resumeSoon(400));
+  ticker.addEventListener('touchstart', pause, { passive: true });
+  ticker.addEventListener('touchend', () => resumeSoon(3000), { passive: true });
+
+  // Click-and-drag with a mouse. A real drag must not open the post underneath.
+  let dragging = false, dragMoved = false, startX = 0, startScroll = 0;
+  ticker.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    dragging = true; dragMoved = false; startX = e.clientX; startScroll = ticker.scrollLeft;
+  });
+  window.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    if (!dragMoved && Math.abs(dx) > 4) { dragMoved = true; ticker.classList.add('is-dragging'); }
+    if (!dragMoved) return;
+    const h = half();
+    ticker.scrollLeft = h > 0 ? 1 + ((((startScroll - dx - 1) % h) + h) % h) : startScroll - dx;
+  });
+  window.addEventListener('pointerup', e => {
+    if (!dragging) return;
+    dragging = false;
+    ticker.classList.remove('is-dragging');
+    if (!ticker.matches(':hover')) resumeSoon(400);
+  });
+  ticker.addEventListener('click', e => { if (dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, true);
 
   async function loadStream() {
     try {
