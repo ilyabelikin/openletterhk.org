@@ -1,0 +1,82 @@
+{
+  "letter": {
+    "before": [
+      "The discriminatory measures {{Anthropic}} are deploying with {{Claude Code}} are unprecedented. For years even authoritarian governments allowed VPN users to use products and services from abroad. Instagram's popularity in China comes to mind. The level of infringement on privacy by Anthropic is unheard of: they track users with methods nobody dared to or was not smart enough to deploy at scale before. It is something new and very, very disturbing.",
+      "As someone who was born under the iron curtain of the USSR, I'm very concerned that we are entering a new age of cold AI war where geopolitical nonsense leads to discrimination against people and businesses at scale by the smartest people on the planet who build super intelligent systems."
+    ],
+    "refrain": [
+      "There is no excuse for spying on your customers and punishing them for visiting or staying in places you do not like.",
+      "There is no excuse for punishing citizens of places overseas and disturbing their way of life and robbing them of choice in what intelligence they wish to use.",
+      "There is no excuse for being so damn smart and so damn clueless at the same time."
+    ],
+    "after": [
+      "I think Anthropic has to embrace competition and open their products and services to everyone in the world equally. Intelligence is moving to the edge, but the cloud super intelligence is coming and will play an incredibly important role in human lives. It will cure diseases, elevate people out of poverty, create job opportunities throughout this obviously tough and transformative period of human history.",
+      "To be on the right side of history Anthropic has to treat their models like the internet that they used to get the intelligence in the first place. Do not tell us you can scrape Hong Kong websites left and right but we cannot use your AI. This is hypocritical and extremely offensive.",
+      "The Internet was created for the benefit of humanity and everyone on the planet using it. AI has to be in the same category.",
+      "Safety is important. Equality and inclusion are also important. You have to do both.",
+      "If nothing else, it's just a better way to do business. You have the best coding model. Let's good people of Hong Kong use it and compete on price and capabilities. Move faster than competition and create more value."
+    ]
+  },
+  "page": {
+    "title": "Open Letter to Anthropic from Hong Kong",
+    "description": "An open letter from Hong Kong asking Anthropic to end discriminatory restrictions on Claude and treat its AI like the open internet it was built from. Add your signature.",
+    "og_description": "There is no excuse for punishing people for where they live. Read the letter and add your signature.",
+    "kicker": "An open letter",
+    "h1_line1": "To Anthropic,",
+    "h1_line2": "from Hong Kong",
+    "dateline": "Hong Kong · October 2026",
+    "signoff_role": "Founder of {{Haah, Inc.}}",
+    "language_switch_label": "Read in English"
+  },
+  "sign": {
+    "heading": "Add your signature",
+    "lede": "Sign with your name, or anonymously. If your business or company is affected, add its website.",
+    "legend": "How would you like to sign?",
+    "opt_named": "With my name",
+    "opt_anon": "Anonymously",
+    "label_name": "Name",
+    "hint_required": "(required)",
+    "label_website": "Website",
+    "hint_website": "(optional — the business or company affected)",
+    "submit": "Sign the letter",
+    "status_need_name": "Please enter your name, or choose to sign anonymously.",
+    "status_adding": "Adding your signature…",
+    "status_thanks": "Thank you — your signature has been added. Now help it travel: share the letter below.",
+    "status_error": "Something went wrong. Please try again.",
+    "status_network": "Network error. Please check your connection and try again."
+  },
+  "share": {
+    "heading": "Share the letter",
+    "lede": "The more people read it, the louder it is. Use {{#openletterhk}} when you post. Nothing here tracks you — each button simply opens that site.",
+    "share_text": "An open letter to Anthropic from Hong Kong: open Claude to everyone in the world, equally. Read it and add your signature.",
+    "email_subject": "Open Letter to Anthropic from Hong Kong",
+    "btn_native": "Share…",
+    "btn_copy": "Copy link",
+    "btn_email": "Email",
+    "status_copied": "Link copied — paste it anywhere.",
+    "status_copy_failed": "Could not copy automatically. The link is",
+    "status_native_failed": "Sharing is not available here — try Copy link.",
+    "status_instagram_sheet": "Pick Instagram in the share sheet. Put openletterhk.org in your caption or a link sticker.",
+    "status_instagram_download": "Image downloaded. Post it on Instagram and put openletterhk.org in your caption or bio."
+  },
+  "stream": {
+    "lede": "What people are saying on Bluesky and X. Post with {{#openletterhk}} to join in.",
+    "empty": "No posts yet — be the first to share the letter with {{#openletterhk}}."
+  },
+  "undersigned": {
+    "heading": "Undersigned",
+    "loading": "Loading signatures…",
+    "load_failed": "Signatures could not be loaded right now.",
+    "first": "Be the first to sign.",
+    "count_template": "Signed by {{total}} — {{named}} with their names, {{anonymous}} anonymously."
+  },
+  "footer": {
+    "privacy": "{{Privacy.}} This page sets no cookies, loads nothing from third parties, and runs no analytics. We store only what you type into the form. Anonymous signatures are counted and nothing else is kept. Posts in the #openletterhk stream are fetched by our server from Bluesky and X; your browser never contacts them.",
+    "license": "Letter text © its author, licensed {{CC BY 4.0}} — share it freely. Site source on {{GitHub}}.",
+    "made": "Made with love in Hong Kong using {{Claude Code}} and Fable 5.1 High."
+  },
+  "cards": {
+    "quote": "Safety is important. Equality and inclusion are also important. You have to do both.",
+    "cta": "Read it & add your signature"
+  }
+}
