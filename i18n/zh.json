@@ -18,9 +18,9 @@
     ]
   },
   "page": {
-    "title": "一封來自香港致 Anthropic 的公開信",
-    "description": "一封來自香港的公開信，要求 Anthropic 停止對 Claude 的歧視性限制，並以對待開放互聯網的原則對待其 AI。加入聯署。",
-    "og_description": "因人們身處何地而懲罰他們，無可辯解。閱讀這封公開信並加入聯署。",
+    "title": "一封香港致 Anthropic 的公開信",
+    "description": "人們不應因身處何方而受到懲罰。閱讀這封公開信並加入聯署。",
+    "og_description": "人們不應因身處何方而受到懲罰。閱讀這封公開信並加入聯署。",
     "kicker": "一封來自香港的公開信",
     "h1_line1": "致 Anthropic：",
     "h1_line2": "",
@@ -56,7 +56,7 @@
     "heading": "分享這封公開信",
     "lede": "閱讀的人越多，聲音就越響亮。發文時請使用 {{#openletterhk}}。本站不會追蹤你；所有按鈕只會開啟相應的網站。",
     "share_text": "",
-    "email_subject": "一封來自香港致 Anthropic 的公開信",
+    "email_subject": "一封香港致 Anthropic 的公開信",
     "btn_native": "分享……",
     "btn_copy": "複製連結",
     "btn_email": "電郵",
