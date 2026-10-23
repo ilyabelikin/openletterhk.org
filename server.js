@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const dns = require('dns').promises;
 const net = require('net');
 const { createStream } = require('./stream');
+const { notANameReason } = require('./moderation');
 
 const PORT = Number(process.env.PORT) || 3010;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -64,6 +65,12 @@ async function handleAdmin(req, res, pathname) {
   if (pathname === '/api/admin/stream' && req.method === 'GET') {
     return sendJson(res, 200, { status: stream.status(), posts: stream.all() });
   }
+  if (pathname === '/api/admin/signatures' && req.method === 'GET') {
+    const named = signatures.filter(s => !s.anonymous).slice().reverse()
+      .map(s => ({ id: s.id, name: s.name, website: s.website || '', at: s.at, hidden: !!s.hidden, flagged: notANameReason(s.name) }));
+    const anon = signatures.filter(s => s.anonymous);
+    return sendJson(res, 200, { named, anonymous: anon.filter(s => !s.hidden).length, anonymousHidden: anon.filter(s => s.hidden).length });
+  }
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
 
   let body;
@@ -72,6 +79,14 @@ async function handleAdmin(req, res, pathname) {
 
   try {
     switch (pathname) {
+      case '/api/admin/sig-hide':
+      case '/api/admin/sig-unhide': {
+        const rec = signatures.find(s => s.id === body.id);
+        if (!rec) return sendJson(res, 404, { error: 'Signature not found.' });
+        if (pathname === '/api/admin/sig-hide') rec.hidden = true; else delete rec.hidden;
+        await persist();
+        return sendJson(res, 200, { ok: true });
+      }
       case '/api/admin/hide':     stream.setHidden(body.id, true);  return sendJson(res, 200, { ok: true });
       case '/api/admin/unhide':   stream.setHidden(body.id, false); return sendJson(res, 200, { ok: true });
       case '/api/admin/x-add':    return sendJson(res, 201, { ok: true, post: await stream.addX(body.url) });
@@ -255,10 +270,11 @@ function publicSignatures() {
   let anonymous = 0;
   for (let i = signatures.length - 1; i >= 0; i--) {
     const s = signatures[i];
+    if (s.hidden) continue; // removed by a moderator
     if (s.anonymous) anonymous++;
     else named.push({ name: s.name, website: s.website || '', at: s.at });
   }
-  return { count: signatures.length, anonymous, named };
+  return { count: named.length + anonymous, anonymous, named };
 }
 
 async function handleSign(req, res) {
@@ -280,6 +296,7 @@ async function handleSign(req, res) {
   if (!anonymous) {
     const name = cleanName(body.name);
     if (!name) return sendJson(res, 400, { code: 'name_invalid', error: 'Please enter your name (up to 80 characters, no links).' });
+    if (notANameReason(name)) return sendJson(res, 400, { code: 'name_not_a_name', error: 'Please enter just your name — this collects signatures, not comments.' });
     const website = cleanWebsite(body.website);
     if (website === null) return sendJson(res, 400, { code: 'website_invalid', error: 'That website address does not look valid. Please check it.' });
 
@@ -304,7 +321,7 @@ async function handleSign(req, res) {
 
   signatures.push(record);
   await persist();
-  sendJson(res, 201, { ok: true, count: signatures.length });
+  sendJson(res, 201, { ok: true, count: signatures.filter(s => !s.hidden).length });
 }
 
 // ── Static files ───────────────────────────────────────────────────────────

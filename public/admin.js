@@ -7,6 +7,8 @@
   const status = document.getElementById('admin-status');
   const feed = document.getElementById('feed-status');
   const list = document.getElementById('post-list');
+  const sigList = document.getElementById('sig-admin-list');
+  const sigSummary = document.getElementById('sig-summary');
   const xForm = document.getElementById('x-form');
   const xUrl = document.getElementById('x-url');
 
@@ -79,8 +81,34 @@
     }
   }
 
+  function renderSignatures(data) {
+    const visible = data.named.filter(s => !s.hidden).length;
+    const hidden = data.named.length - visible + data.anonymousHidden;
+    sigSummary.textContent = visible + ' named + ' + data.anonymous + ' anonymous visible' + (hidden ? ' · ' + hidden + ' hidden' : '') +
+      '. Hidden signatures disappear from the letter and its count; you can unhide them any time.';
+    sigList.replaceChildren();
+    if (!data.named.length) { sigList.appendChild(el('li', 'admin-empty', 'No named signatures yet.')); return; }
+    for (const s of data.named) {
+      const li = el('li', 'admin-item' + (s.hidden ? ' is-hidden' : ''));
+      const head = el('div', 'admin-head');
+      head.appendChild(el('span', 'admin-badge ' + (s.hidden ? 'badge-hidden' : s.flagged ? 'badge-filtered' : 'badge-visible'),
+        s.hidden ? 'hidden' : s.flagged ? 'visible · looks like: ' + s.flagged : 'visible'));
+      head.appendChild(el('span', 'admin-author', s.name));
+      if (s.website) head.appendChild(el('span', 'admin-src', s.website.replace(/^https?:\/\//, '').replace(/\/$/, '')));
+      head.appendChild(el('time', 'admin-date', new Date(s.at).toLocaleString()));
+      li.appendChild(head);
+      const actions = el('div', 'admin-actions');
+      const btn = el('button', 'secondary', s.hidden ? 'Unhide' : 'Hide'); btn.type = 'button';
+      btn.addEventListener('click', () => act(s.hidden ? '/api/admin/sig-unhide' : '/api/admin/sig-hide', { id: s.id }, s.hidden ? 'Signature restored.' : 'Signature hidden.'));
+      actions.appendChild(btn);
+      li.appendChild(actions);
+      sigList.appendChild(li);
+    }
+  }
+
   async function load() {
     try {
+      renderSignatures(await api('/api/admin/signatures'));
       const data = await api('/api/admin/stream');
       try { sessionStorage.setItem('olhk-admin-key', key); } catch {}
       keyForm.hidden = true;

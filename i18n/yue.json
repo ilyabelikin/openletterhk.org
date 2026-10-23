@@ -49,7 +49,8 @@
     "error_website_invalid": "呢個網址睇落唔啱，請再檢查下。",
     "error_website_unreachable": "我哋連唔到呢個網站，請檢查下網址，或者唔填網站都得。",
     "error_duplicate": "呢個名同網站已經簽咗喇，多謝！",
-    "error_rate_limited": "你嘅網絡試咗太多次，請遲啲再試。"
+    "error_rate_limited": "你嘅網絡試咗太多次，請遲啲再試。",
+    "error_name_not_a_name": "請只輸入你嘅名——呢度係收集簽名，唔係留言。"
   },
   "share": {
     "heading": "分享呢封信",
