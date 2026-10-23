@@ -5,7 +5,7 @@ module.exports = {
     {
       name: 'openletterhk',
       script: `${root}/server.js`,
-      interpreter: '/root/.nvm/versions/node/v22.12.0/bin/node',
+      interpreter: '/opt/node22/bin/node', // -> current Node 22.x (symlink, so patches need no config change)
       cwd: root,
       // ADMIN_KEY (and any other secrets) live in .env on the server, never in git.
       node_args: `--env-file-if-exists=${root}/.env`,
