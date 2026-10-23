@@ -35,3 +35,7 @@ Only what is typed into the form is stored. Anonymous signatures store a timesta
 ## Licence
 
 Letter text © its author, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Code [MIT](LICENSE).
+
+## Social card
+
+`public/og.png` (2400×1260) is rendered from `og/card.html`. Edit the HTML, then run `./og/render.sh` (needs Google Chrome).
